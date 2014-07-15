@@ -4,7 +4,7 @@ Riak contacts backend and collection.
 
 from zope.interface import implementer
 
-from go_api.interfaces import ICollection
+from go_api.collections import ICollection
 
 
 class RiakContactsBackend(object):
@@ -24,7 +24,7 @@ class RiakContactsCollection(object):
         """
         raise NotImplementedError()
 
-    def all():
+    def all(self):
         """
         Return an iterable over all objects in the collection. The iterable may
         contain deferreds instead of objects. May return a deferred instead of
@@ -32,14 +32,14 @@ class RiakContactsCollection(object):
         """
         raise NotImplementedError()
 
-    def get(object_id):
+    def get(self, object_id):
         """
         Return a single object from the collection. May return a deferred
         instead of the object.
         """
         return {}
 
-    def create(object_id, data):
+    def create(self, object_id, data):
         """
         Create an object within the collection. May return a deferred.
 
@@ -47,7 +47,7 @@ class RiakContactsCollection(object):
         """
         raise NotImplementedError()
 
-    def update(object_id, data):
+    def update(self, object_id, data):
         """
         Update an object. May return a deferred.
 
@@ -55,7 +55,7 @@ class RiakContactsCollection(object):
         """
         raise NotImplementedError()
 
-    def delete(object_id):
+    def delete(self, object_id):
         """
         Delete an object. May return a deferred.
         """
