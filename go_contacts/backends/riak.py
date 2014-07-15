@@ -9,11 +9,14 @@ from go_api.interfaces import ICollection
 
 class RiakContactsBackend(object):
     def get_contact_collection(self, owner_id):
-        pass
+        return RiakContactsCollection(owner_id)
 
 
 @implementer(ICollection)
 class RiakContactsCollection(object):
+    def __init__(self, owner_id):
+        self.owner_id = owner_id
+
     def all_keys(self):
         """
         Return an iterable over all keys in the collection. May return a
