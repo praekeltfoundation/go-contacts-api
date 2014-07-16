@@ -74,6 +74,18 @@ class TestRiakContactsCollection(VumiTestCase):
                 self.EXPECTED_DATE_FORMAT)
         self.assertEqual(contact, expected)
 
+    def test_pick_fields(self):
+        pick_fields = RiakContactsCollection._pick_fields
+        self.assertEqual(
+            pick_fields({"a": "1", "b": "2"}, ["a", "c"]),
+            {"a": "1"})
+
+    def test_pick_contact_fields(self):
+        pick_contact_fields = RiakContactsCollection._pick_contact_fields
+        self.assertEqual(
+            pick_contact_fields({"msisdn": "+12345", "notfield": "xyz"}),
+            {"msisdn": "+12345"})
+
     @inlineCallbacks
     def test_collection_provides_ICollection(self):
         """
@@ -106,4 +118,26 @@ class TestRiakContactsCollection(VumiTestCase):
     def test_get_non_existent_contact(self):
         collection = yield self.mk_collection("owner-1")
         contact = yield collection.get("bad-contact-id")
+        self.assertEqual(contact, None)
+
+    @inlineCallbacks
+    def test_update(self):
+        collection = yield self.mk_collection("owner-1")
+        new_contact = yield collection.contact_store.new_contact(
+            name=u"Bob", msisdn=u"+12345")
+        contact = yield collection.update(new_contact.key, {
+            "msisdn": u"+6789",
+        })
+        self.assert_contact(contact, {
+            u'key': new_contact.key,
+            u'created_at': new_contact.created_at,
+            u'msisdn': u"+6789",
+            u'name': u'Bob',
+            u'user_account': u'owner-1',
+        })
+
+    @inlineCallbacks
+    def test_update_non_existent_contact(self):
+        collection = yield self.mk_collection("owner-1")
+        contact = yield collection.update("bad-contact-id", {})
         self.assertEqual(contact, None)

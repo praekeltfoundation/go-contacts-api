@@ -6,7 +6,7 @@ from twisted.internet.defer import inlineCallbacks, returnValue
 from zope.interface import implementer
 
 from go.vumitools.contact import (
-    ContactStore, ContactNotFoundError, ContactError)
+    ContactStore, ContactNotFoundError, Contact)
 
 from go_api.collections import ICollection
 
@@ -24,6 +24,22 @@ class RiakContactsBackend(object):
 class RiakContactsCollection(object):
     def __init__(self, contact_store):
         self.contact_store = contact_store
+
+    @staticmethod
+    def _pick_fields(data, keys):
+        """
+        Return a sub-dictionary of all the items from ``data`` whose
+        keys are listed in ``keys``.
+        """
+        return dict((k, data[k]) for k in keys if k in data)
+
+    @classmethod
+    def _pick_contact_fields(cls, data):
+        """
+        Return a sub-dictionary of the the items from ``data`` that are
+        valid contact fields.
+        """
+        return cls._pick_fields(data, Contact.field_descriptors.keys())
 
     def all_keys(self):
         """
@@ -60,13 +76,20 @@ class RiakContactsCollection(object):
         """
         raise NotImplementedError()
 
+    @inlineCallbacks
     def update(self, object_id, data):
         """
         Update an object. May return a deferred.
 
         ``object_id`` may not be ``None``.
         """
-        raise NotImplementedError()
+        fields = self._pick_contact_fields(data)
+        try:
+            contact = yield self.contact_store.update_contact(
+                object_id, **fields)
+        except ContactNotFoundError:
+            returnValue(None)
+        returnValue(contact.get_data())
 
     def delete(self, object_id):
         """
