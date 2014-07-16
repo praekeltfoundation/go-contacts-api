@@ -13,6 +13,7 @@ setup(
     include_package_data=True,
     install_requires=[
         'cyclone',
+        'go_api',
     ],
     classifiers=[
         'Development Status :: 4 - Beta',
