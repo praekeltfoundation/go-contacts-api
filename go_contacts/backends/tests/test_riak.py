@@ -40,7 +40,7 @@ class TestRiakContactsBackend(VumiTestCase):
 class TestRiakContactsCollection(VumiTestCase):
     def setUp(self):
         self.persistence_helper = self.add_helper(
-            PersistenceHelper(use_riak=True, is_sync=True))
+            PersistenceHelper(use_riak=True, is_sync=False))
 
     @inlineCallbacks
     def mk_collection(self, owner_id):
