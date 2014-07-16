@@ -2,6 +2,8 @@
 Tests for riak contacts backend and collection.
 """
 
+from datetime import datetime
+
 from twisted.internet.defer import inlineCallbacks, returnValue
 from zope.interface.verify import verifyObject
 
@@ -49,6 +51,31 @@ class TestRiakContactsCollection(VumiTestCase):
         collection = RiakContactsCollection(contact_store)
         returnValue(collection)
 
+    EXPECTED_DATE_FORMAT = "%Y-%m-%d %H:%M:%S.%f"
+
+    CONTACT_FIELD_DEFAULTS = {
+        u'$VERSION': 2,
+        u'bbm_pin': None,
+        u'dob': None,
+        u'email_address': None,
+        u'facebook_id': None,
+        u'groups': [],
+        u'gtalk_id': None,
+        u'mxit_id': None,
+        u'name': None,
+        u'surname': None,
+        u'twitter_handle': None,
+        u'wechat_id': None,
+    }
+
+    def assert_contact(self, contact, expected_partial):
+        expected = self.CONTACT_FIELD_DEFAULTS.copy()
+        expected.update(expected_partial)
+        if isinstance(expected.get("created_at"), datetime):
+            expected["created_at"] = expected["created_at"].strftime(
+                self.EXPECTED_DATE_FORMAT)
+        self.assertEqual(contact, expected)
+
     @inlineCallbacks
     def test_collection_provides_ICollection(self):
         """
@@ -62,6 +89,20 @@ class TestRiakContactsCollection(VumiTestCase):
     def test_init(self):
         collection = yield self.mk_collection("owner-1")
         self.assertEqual(collection.contact_store.user_account_key, "owner-1")
+
+    @inlineCallbacks
+    def test_get(self):
+        collection = yield self.mk_collection("owner-1")
+        new_contact = yield collection.contact_store.new_contact(
+            name=u"Bob", msisdn=u"+12345")
+        contact = yield collection.get(new_contact.key)
+        self.assert_contact(contact, {
+            u'key': new_contact.key,
+            u'created_at': new_contact.created_at,
+            u'msisdn': u'+12345',
+            u'name': u'Bob',
+            u'user_account': u'owner-1',
+        })
 
     @inlineCallbacks
     def test_get_non_existent_contact(self):
