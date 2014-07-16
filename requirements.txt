@@ -1,8 +1,16 @@
 # Our dependencies are all specified in setup.py.
 
 # The following three packages need to be installed from the their repositories
-# because vumi-go depends on dev versions. To upgrade, use the following command:
+# because we depend on vumi-go which:
+#
+#  1. is only available as a dev version
+#  2. depends on vxpolls and vumi-wikipedia which are only available as dev
+#     versions.
+#
+# To upgrade, use the following command:
+#
 #   pip install --exists-action i -U -r requirements.pip
+#
 # This will ignore any existing repository clones. They can be updated manually
 # if desired.
 
