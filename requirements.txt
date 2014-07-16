@@ -1,3 +1,21 @@
 # Our dependencies are all specified in setup.py.
 
+# The following three packages need to be installed from the their repositories
+# because we depend on vumi-go which:
+#
+#  1. is only available as a dev version
+#  2. depends on vxpolls and vumi-wikipedia which are only available as dev
+#     versions.
+#
+# To upgrade, use the following command:
+#
+#   pip install --exists-action i -U -r requirements.pip
+#
+# This will ignore any existing repository clones. They can be updated manually
+# if desired.
+
+-e git+https://github.com/praekelt/vxpolls.git#egg=vxpolls
+-e git+https://github.com/praekelt/vumi-wikipedia.git#egg=vumi-wikipedia
+-e git+https://github.com/praekelt/vumi-go.git#egg=vumi-go
+
 -e .
