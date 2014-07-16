@@ -14,6 +14,7 @@ setup(
     install_requires=[
         'cyclone',
         'go_api',
+        'vumi-go',
     ],
     classifiers=[
         'Development Status :: 4 - Beta',
