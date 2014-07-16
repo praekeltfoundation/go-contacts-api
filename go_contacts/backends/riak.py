@@ -48,7 +48,7 @@ class RiakContactsCollection(object):
         """
         try:
             contact = yield self.contact_store.get_contact_by_key(object_id)
-        except (ContactNotFoundError, ContactError):
+        except ContactNotFoundError:
             returnValue(None)
         returnValue(contact.get_data())
 
