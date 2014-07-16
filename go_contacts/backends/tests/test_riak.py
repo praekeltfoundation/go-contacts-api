@@ -13,6 +13,8 @@ from vumi.tests.helpers import PersistenceHelper
 from go.vumitools.contact import ContactStore
 
 from go_api.collections import ICollection
+from go_api.collections.errors import (
+    CollectionObjectNotFound, CollectionUsageError)
 
 from go_contacts.backends.riak import (
     RiakContactsBackend, RiakContactsCollection)
@@ -139,5 +141,19 @@ class TestRiakContactsCollection(VumiTestCase):
     @inlineCallbacks
     def test_update_non_existent_contact(self):
         collection = yield self.mk_collection("owner-1")
-        contact = yield collection.update("bad-contact-id", {})
-        self.assertEqual(contact, None)
+        d = collection.update("bad-contact-id", {})
+        err = yield self.failUnlessFailure(d, CollectionObjectNotFound)
+        self.assertEqual(str(err), "Contact 'bad-contact-id' not found.")
+
+    @inlineCallbacks
+    def test_update_invalid_fields(self):
+        collection = yield self.mk_collection("owner-1")
+        new_contact = yield collection.contact_store.new_contact(
+            name=u"Bob", msisdn=u"+12345")
+        d = collection.update(new_contact.key, {
+            "unknown_field": u"foo",
+            "not_the_field": u"bar",
+        })
+        err = yield self.failUnlessFailure(d, CollectionUsageError)
+        self.assertEqual(
+            str(err), "Invalid contact fields: not_the_field, unknown_field")

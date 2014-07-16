@@ -9,6 +9,8 @@ from go.vumitools.contact import (
     ContactStore, ContactNotFoundError, Contact)
 
 from go_api.collections import ICollection
+from go_api.collections.errors import (
+    CollectionObjectNotFound, CollectionUsageError)
 
 
 class RiakContactsBackend(object):
@@ -84,11 +86,17 @@ class RiakContactsCollection(object):
         ``object_id`` may not be ``None``.
         """
         fields = self._pick_contact_fields(data)
+        given_keys = set(data.keys())
+        valid_keys = set(fields.keys())
+        if given_keys != valid_keys:
+            raise CollectionUsageError(
+                "Invalid contact fields: %s" % ", ".join(
+                    sorted(given_keys - valid_keys)))
         try:
             contact = yield self.contact_store.update_contact(
                 object_id, **fields)
         except ContactNotFoundError:
-            returnValue(None)
+            raise CollectionObjectNotFound(object_id, "Contact")
         returnValue(contact.get_data())
 
     def delete(self, object_id):
