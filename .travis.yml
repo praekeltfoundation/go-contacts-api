@@ -4,6 +4,9 @@ python:
   - "2.7"
 services:
   - riak
+before_install:
+  # we need the protobuf-compiler so we can install Riak client libraries
+  - sudo apt-get install -qq protobuf-compiler
 install:
   - "pip install -r requirements.txt --use-wheel"
   - "pip install coveralls --use-wheel"
