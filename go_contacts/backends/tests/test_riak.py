@@ -31,3 +31,7 @@ class TestRiakContactsCollection(TestCase):
     def test_init(self):
         collection = RiakContactsCollection("owner-1")
         self.assertEqual(collection.owner_id, "owner-1")
+
+    def test_get(self):
+        collection = RiakContactsCollection("owner-1")
+        self.assertEqual(collection.get("contact-1"), {})
