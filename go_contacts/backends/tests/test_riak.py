@@ -8,7 +8,7 @@ from twisted.internet.defer import inlineCallbacks, returnValue
 from zope.interface.verify import verifyObject
 
 from vumi.tests.helpers import VumiTestCase
-from vumi.persist.txriak_manager import TxRiakManager
+from vumi.tests.helpers import PersistenceHelper
 
 from go.vumitools.contact import ContactStore
 
@@ -18,19 +18,14 @@ from go_contacts.backends.riak import (
     RiakContactsBackend, RiakContactsCollection)
 
 
-@inlineCallbacks
-def create_riak_manager(config, add_cleanup):
-    manager = TxRiakManager.from_config(config)
-    add_cleanup(manager.purge_all)
-    yield manager.purge_all()
-    returnValue(manager)
-
-
 class TestRiakContactsBackend(VumiTestCase):
+    def setUp(self):
+        self.persistence_helper = self.add_helper(
+            PersistenceHelper(use_riak=True, is_sync=True))
+
     @inlineCallbacks
     def mk_backend(self):
-        manager = yield create_riak_manager(
-            {'bucket_prefix': 'test.'}, self.add_cleanup)
+        manager = yield self.persistence_helper.get_riak_manager()
         backend = RiakContactsBackend(manager)
         returnValue(backend)
 
@@ -43,10 +38,13 @@ class TestRiakContactsBackend(VumiTestCase):
 
 
 class TestRiakContactsCollection(VumiTestCase):
+    def setUp(self):
+        self.persistence_helper = self.add_helper(
+            PersistenceHelper(use_riak=True, is_sync=True))
+
     @inlineCallbacks
     def mk_collection(self, owner_id):
-        manager = yield create_riak_manager(
-            {'bucket_prefix': 'test.'}, self.add_cleanup)
+        manager = yield self.persistence_helper.get_riak_manager()
         contact_store = ContactStore(manager, owner_id)
         collection = RiakContactsCollection(contact_store)
         returnValue(collection)
