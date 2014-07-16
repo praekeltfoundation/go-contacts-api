@@ -21,7 +21,7 @@ from go_contacts.backends.riak import (
 class TestRiakContactsBackend(VumiTestCase):
     def setUp(self):
         self.persistence_helper = self.add_helper(
-            PersistenceHelper(use_riak=True, is_sync=True))
+            PersistenceHelper(use_riak=True, is_sync=False))
 
     @inlineCallbacks
     def mk_backend(self):
