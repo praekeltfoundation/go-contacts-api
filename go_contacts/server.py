@@ -2,6 +2,8 @@
 Cyclone application for Vumi Go contacts API.
 """
 
+from vumi.persist.txriak_manager import TxRiakManager
+
 from go_api.cyclone.handlers import ApiApplication
 from go_contacts.backends.riak import RiakContactsBackend
 
@@ -13,12 +15,23 @@ class ContactsApi(ApiApplication):
     """
 
     def __init__(self, config_file=None, **settings):
-        config_dict = self.get_config_settings(config_file)
-        self.backend = RiakContactsBackend(config_dict.pop('riak_config'))
+        if config_file is None:
+            raise ValueError(
+                "Please specific config file using --appopts=<config.yaml>")
+        self.config = self.get_config_settings(config_file)
+        self.backend = self._setup_backend()
         ApiApplication.__init__(self, **settings)
+
+    def _setup_backend(self):
+        if "riak_manager" not in self.config:
+            raise ValueError(
+                "Config file must contain a riak_manager entry.")
+        riak_manager = TxRiakManager.from_config(self.config['riak_manager'])
+        backend = RiakContactsBackend(riak_manager)
+        return backend
 
     @property
     def collections(self):
         return (
-            ('/', self.backend.get_contact_collection),
+            ('/contacts', self.backend.get_contact_collection),
         )
