@@ -38,10 +38,25 @@ class RiakContactsCollection(object):
     @classmethod
     def _pick_contact_fields(cls, data):
         """
-        Return a sub-dictionary of the the items from ``data`` that are
-        valid contact fields.
+        Return a sub-dictionary of the items from ``data`` that are valid
+        contact fields.
         """
         return cls._pick_fields(data, Contact.field_descriptors.keys())
+
+    @classmethod
+    def _check_contact_fields(cls, data):
+        """
+        Return a sub-dictionary of the items from ``data`` that are valid
+        and raise a :class:`CollectionUsageError` if any fields are not.
+        """
+        fields = cls._pick_contact_fields(data)
+        given_keys = set(data.keys())
+        valid_keys = set(fields.keys())
+        if given_keys != valid_keys:
+            raise CollectionUsageError(
+                "Invalid contact fields: %s" % ", ".join(
+                    sorted(given_keys - valid_keys)))
+        return fields
 
     def all_keys(self):
         """
@@ -70,13 +85,19 @@ class RiakContactsCollection(object):
             raise CollectionObjectNotFound(object_id, "Contact")
         returnValue(contact.get_data())
 
+    @inlineCallbacks
     def create(self, object_id, data):
         """
         Create an object within the collection. May return a deferred.
 
         If ``object_id`` is ``None``, an identifier will be generated.
         """
-        raise NotImplementedError()
+        fields = self._check_contact_fields(data)
+        if object_id is not None:
+            raise CollectionUsageError(
+                "Contact keys may not be specified in contact creation")
+        contact = yield self.contact_store.new_contact(**fields)
+        returnValue((contact.key, contact.get_data()))
 
     @inlineCallbacks
     def update(self, object_id, data):
@@ -85,13 +106,7 @@ class RiakContactsCollection(object):
 
         ``object_id`` may not be ``None``.
         """
-        fields = self._pick_contact_fields(data)
-        given_keys = set(data.keys())
-        valid_keys = set(fields.keys())
-        if given_keys != valid_keys:
-            raise CollectionUsageError(
-                "Invalid contact fields: %s" % ", ".join(
-                    sorted(given_keys - valid_keys)))
+        fields = self._check_contact_fields(data)
         try:
             contact = yield self.contact_store.update_contact(
                 object_id, **fields)

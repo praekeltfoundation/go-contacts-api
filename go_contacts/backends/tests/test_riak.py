@@ -124,6 +124,24 @@ class TestRiakContactsCollection(VumiTestCase):
         self.assertEqual(str(err), "Contact 'bad-contact-id' not found.")
 
     @inlineCallbacks
+    def test_create(self):
+        collection = yield self.mk_collection("owner-1")
+        key, contact = yield collection.create(None, {
+            "msisdn": u"+12345",
+            "name": u"Arthur",
+            "surname": u"of Camelot",
+        })
+        new_contact = yield collection.contact_store.get_contact_by_key(key)
+        self.assert_contact(contact, {
+            u'key': new_contact.key,
+            u'created_at': new_contact.created_at,
+            u'msisdn': u'+12345',
+            u'name': u'Arthur',
+            u'surname': u'of Camelot',
+            u'user_account': u'owner-1',
+        })
+
+    @inlineCallbacks
     def test_update(self):
         collection = yield self.mk_collection("owner-1")
         new_contact = yield collection.contact_store.new_contact(
