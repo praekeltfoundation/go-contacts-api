@@ -95,7 +95,7 @@ class RiakContactsCollection(object):
         fields = self._check_contact_fields(data)
         if object_id is not None:
             raise CollectionUsageError(
-                "Contact keys may not be specified in contact creation")
+                "A contact key may not be specified in contact creation")
         contact = yield self.contact_store.new_contact(**fields)
         returnValue((contact.key, contact.get_data()))
 

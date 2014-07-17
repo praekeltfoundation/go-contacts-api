@@ -142,6 +142,28 @@ class TestRiakContactsCollection(VumiTestCase):
         })
 
     @inlineCallbacks
+    def test_create_with_id_fails(self):
+        collection = yield self.mk_collection("owner-1")
+        d = collection.create(u"foo", {
+            "msisdn": u"+12345",
+            "name": u"Sir Gawain",
+        })
+        err = yield self.failUnlessFailure(d, CollectionUsageError)
+        self.assertEqual(
+            str(err), "A contact key may not be specified in contact creation")
+
+    @inlineCallbacks
+    def test_create_invalid_fields(self):
+        collection = yield self.mk_collection("owner-1")
+        d = collection.create(None, {
+            "unknown_field": u"foo",
+            "not_the_field": u"bar",
+        })
+        err = yield self.failUnlessFailure(d, CollectionUsageError)
+        self.assertEqual(
+            str(err), "Invalid contact fields: not_the_field, unknown_field")
+
+    @inlineCallbacks
     def test_update(self):
         collection = yield self.mk_collection("owner-1")
         new_contact = yield collection.contact_store.new_contact(
