@@ -99,8 +99,15 @@ class RiakContactsCollection(object):
             raise CollectionObjectNotFound(object_id, "Contact")
         returnValue(contact.get_data())
 
+    @inlineCallbacks
     def delete(self, object_id):
         """
         Delete an object. May return a deferred.
         """
-        raise NotImplementedError()
+        try:
+            contact = yield self.contact_store.get_contact_by_key(object_id)
+        except ContactNotFoundError:
+            raise CollectionObjectNotFound(object_id, "Contact")
+        contact_data = contact.get_data()
+        yield contact.delete()
+        returnValue(contact_data)
