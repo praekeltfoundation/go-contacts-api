@@ -49,7 +49,7 @@ class ContactsApiTestCase(VumiTestCase):
         err = self.assertRaises(ValueError, ContactsApi)
         self.assertEqual(
             str(err),
-            "Please specific config file using --appopts=<config.yaml>")
+            "Please specify a config file using --appopts=<config.yaml>")
 
     def test_init_no_riak_config(self):
         configfile = self.mk_config({})

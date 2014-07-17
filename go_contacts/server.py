@@ -17,7 +17,7 @@ class ContactsApi(ApiApplication):
     def __init__(self, config_file=None, **settings):
         if config_file is None:
             raise ValueError(
-                "Please specific config file using --appopts=<config.yaml>")
+                "Please specify a config file using --appopts=<config.yaml>")
         self.config = self.get_config_settings(config_file)
         self.backend = self._setup_backend()
         ApiApplication.__init__(self, **settings)
