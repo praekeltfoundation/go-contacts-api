@@ -67,7 +67,7 @@ class RiakContactsCollection(object):
         try:
             contact = yield self.contact_store.get_contact_by_key(object_id)
         except ContactNotFoundError:
-            returnValue(None)
+            raise CollectionObjectNotFound(object_id, "Contact")
         returnValue(contact.get_data())
 
     def create(self, object_id, data):

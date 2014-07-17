@@ -119,8 +119,9 @@ class TestRiakContactsCollection(VumiTestCase):
     @inlineCallbacks
     def test_get_non_existent_contact(self):
         collection = yield self.mk_collection("owner-1")
-        contact = yield collection.get("bad-contact-id")
-        self.assertEqual(contact, None)
+        d = collection.get("bad-contact-id")
+        err = yield self.failUnlessFailure(d, CollectionObjectNotFound)
+        self.assertEqual(str(err), "Contact 'bad-contact-id' not found.")
 
     @inlineCallbacks
     def test_update(self):
