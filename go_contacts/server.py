@@ -2,7 +2,7 @@
 Cyclone application for Vumi Go contacts API.
 """
 
-from go_api.cyclone import ApiApplication
+from go_api.cyclone.handlers import ApiApplication
 from go_contacts.backends.riak import RiakContactsBackend
 
 
@@ -12,8 +12,9 @@ class ContactsApi(ApiApplication):
         A backend that provides a contact collection factory.
     """
 
-    def __init__(self, **settings):
-        self.backend = RiakContactsBackend(settings.pop('riak_config'))
+    def __init__(self, config_file=None, **settings):
+        config_dict = self.get_config_settings(config_file)
+        self.backend = RiakContactsBackend(config_dict.pop('riak_config'))
         ApiApplication.__init__(self, **settings)
 
     @property
