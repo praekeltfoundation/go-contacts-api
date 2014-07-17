@@ -161,6 +161,10 @@ class TestRiakContactsCollection(VumiTestCase):
             u'surname': u'of Camelot',
             u'user_account': u'owner-1',
         })
+        self.assertEqual(new_contact.key, key)
+        self.assertEqual(new_contact.name, u"Arthur")
+        self.assertEqual(new_contact.surname, u"of Camelot")
+        self.assertEqual(new_contact.msisdn, u"+12345")
 
     @inlineCallbacks
     def test_create_with_id_fails(self):
