@@ -88,6 +88,27 @@ class TestRiakContactsCollection(VumiTestCase):
             pick_contact_fields({"msisdn": "+12345", "notfield": "xyz"}),
             {"msisdn": "+12345"})
 
+    def test_check_contact_fields_success(self):
+        check_contact_fields = RiakContactsCollection._check_contact_fields
+        self.assertEqual(
+            check_contact_fields({"msisdn": "+12345"}),
+            {"msisdn": "+12345"})
+
+    def test_check_contact_fields_raises(self):
+        check_contact_fields = RiakContactsCollection._check_contact_fields
+        err = self.assertRaises(
+            CollectionUsageError, check_contact_fields,
+            {"msisdn": "+12345", "notfield": "xyz"})
+        self.assertEqual(str(err), "Invalid contact fields: notfield")
+
+    def test_check_contact_fields_raises_multiple_fields(self):
+        check_contact_fields = RiakContactsCollection._check_contact_fields
+        err = self.assertRaises(
+            CollectionUsageError, check_contact_fields,
+            {"msisdn": "+12345", "notfield": "xyz", "badfield": "foo"})
+        self.assertEqual(
+            str(err), "Invalid contact fields: badfield, notfield")
+
     @inlineCallbacks
     def test_collection_provides_ICollection(self):
         """
@@ -122,6 +143,50 @@ class TestRiakContactsCollection(VumiTestCase):
         d = collection.get("bad-contact-id")
         err = yield self.failUnlessFailure(d, CollectionObjectNotFound)
         self.assertEqual(str(err), "Contact 'bad-contact-id' not found.")
+
+    @inlineCallbacks
+    def test_create(self):
+        collection = yield self.mk_collection("owner-1")
+        key, contact = yield collection.create(None, {
+            "msisdn": u"+12345",
+            "name": u"Arthur",
+            "surname": u"of Camelot",
+        })
+        new_contact = yield collection.contact_store.get_contact_by_key(key)
+        self.assert_contact(contact, {
+            u'key': new_contact.key,
+            u'created_at': new_contact.created_at,
+            u'msisdn': u'+12345',
+            u'name': u'Arthur',
+            u'surname': u'of Camelot',
+            u'user_account': u'owner-1',
+        })
+        self.assertEqual(new_contact.key, key)
+        self.assertEqual(new_contact.name, u"Arthur")
+        self.assertEqual(new_contact.surname, u"of Camelot")
+        self.assertEqual(new_contact.msisdn, u"+12345")
+
+    @inlineCallbacks
+    def test_create_with_id_fails(self):
+        collection = yield self.mk_collection("owner-1")
+        d = collection.create(u"foo", {
+            "msisdn": u"+12345",
+            "name": u"Sir Gawain",
+        })
+        err = yield self.failUnlessFailure(d, CollectionUsageError)
+        self.assertEqual(
+            str(err), "A contact key may not be specified in contact creation")
+
+    @inlineCallbacks
+    def test_create_invalid_fields(self):
+        collection = yield self.mk_collection("owner-1")
+        d = collection.create(None, {
+            "unknown_field": u"foo",
+            "not_the_field": u"bar",
+        })
+        err = yield self.failUnlessFailure(d, CollectionUsageError)
+        self.assertEqual(
+            str(err), "Invalid contact fields: not_the_field, unknown_field")
 
     @inlineCallbacks
     def test_update(self):
