@@ -189,6 +189,16 @@ class TestRiakContactsCollection(VumiTestCase):
             str(err), "Invalid contact fields: not_the_field, unknown_field")
 
     @inlineCallbacks
+    def test_create_invalid_field_value(self):
+        collection = yield self.mk_collection("owner-1")
+        d = collection.create(None, {
+            "msisdn": 5,
+        })
+        err = yield self.failUnlessFailure(d, CollectionUsageError)
+        self.assertEqual(
+            str(err), "Value 5 is not a unicode string.")
+
+    @inlineCallbacks
     def test_update(self):
         collection = yield self.mk_collection("owner-1")
         new_contact = yield collection.contact_store.new_contact(
@@ -223,6 +233,18 @@ class TestRiakContactsCollection(VumiTestCase):
         err = yield self.failUnlessFailure(d, CollectionUsageError)
         self.assertEqual(
             str(err), "Invalid contact fields: not_the_field, unknown_field")
+
+    @inlineCallbacks
+    def test_update_invalid_field_value(self):
+        collection = yield self.mk_collection("owner-1")
+        new_contact = yield collection.contact_store.new_contact(
+            name=u"Bob", msisdn=u"+12345")
+        d = collection.update(new_contact.key, {
+            "msisdn": None,
+        })
+        err = yield self.failUnlessFailure(d, CollectionUsageError)
+        self.assertEqual(
+            str(err), "None is not allowed as a value for non-null fields.")
 
     @inlineCallbacks
     def test_delete(self):

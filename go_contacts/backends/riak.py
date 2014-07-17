@@ -5,6 +5,7 @@ Riak contacts backend and collection.
 from twisted.internet.defer import inlineCallbacks, returnValue
 from zope.interface import implementer
 
+from vumi.persist.fields import ValidationError
 from go.vumitools.contact import (
     ContactStore, ContactNotFoundError, Contact)
 
@@ -96,7 +97,10 @@ class RiakContactsCollection(object):
         if object_id is not None:
             raise CollectionUsageError(
                 "A contact key may not be specified in contact creation")
-        contact = yield self.contact_store.new_contact(**fields)
+        try:
+            contact = yield self.contact_store.new_contact(**fields)
+        except ValidationError, e:
+            raise CollectionUsageError(str(e))
         returnValue((contact.key, contact.get_data()))
 
     @inlineCallbacks
@@ -112,6 +116,8 @@ class RiakContactsCollection(object):
                 object_id, **fields)
         except ContactNotFoundError:
             raise CollectionObjectNotFound(object_id, "Contact")
+        except ValidationError, e:
+            raise CollectionUsageError(str(e))
         returnValue(contact.get_data())
 
     @inlineCallbacks
