@@ -88,6 +88,27 @@ class TestRiakContactsCollection(VumiTestCase):
             pick_contact_fields({"msisdn": "+12345", "notfield": "xyz"}),
             {"msisdn": "+12345"})
 
+    def test_check_contact_fields_success(self):
+        check_contact_fields = RiakContactsCollection._check_contact_fields
+        self.assertEqual(
+            check_contact_fields({"msisdn": "+12345"}),
+            {"msisdn": "+12345"})
+
+    def test_check_contact_fields_raises(self):
+        check_contact_fields = RiakContactsCollection._check_contact_fields
+        err = self.assertRaises(
+            CollectionUsageError, check_contact_fields,
+            {"msisdn": "+12345", "notfield": "xyz"})
+        self.assertEqual(str(err), "Invalid contact fields: notfield")
+
+    def test_check_contact_fields_raises_multiple_fields(self):
+        check_contact_fields = RiakContactsCollection._check_contact_fields
+        err = self.assertRaises(
+            CollectionUsageError, check_contact_fields,
+            {"msisdn": "+12345", "notfield": "xyz", "badfield": "foo"})
+        self.assertEqual(
+            str(err), "Invalid contact fields: badfield, notfield")
+
     @inlineCallbacks
     def test_collection_provides_ICollection(self):
         """
