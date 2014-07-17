@@ -10,7 +10,7 @@ from zope.interface.verify import verifyObject
 from vumi.tests.helpers import VumiTestCase
 from vumi.tests.helpers import PersistenceHelper
 
-from go.vumitools.contact import ContactStore
+from go.vumitools.contact import ContactStore, ContactNotFoundError
 
 from go_api.collections import ICollection
 from go_api.collections.errors import (
@@ -157,3 +157,26 @@ class TestRiakContactsCollection(VumiTestCase):
         err = yield self.failUnlessFailure(d, CollectionUsageError)
         self.assertEqual(
             str(err), "Invalid contact fields: not_the_field, unknown_field")
+
+    @inlineCallbacks
+    def test_delete(self):
+        collection = yield self.mk_collection("owner-1")
+        new_contact = yield collection.contact_store.new_contact(
+            name=u"Bob", msisdn=u"+12345")
+        contact = yield collection.delete(new_contact.key)
+        self.assert_contact(contact, {
+            u'key': new_contact.key,
+            u'created_at': new_contact.created_at,
+            u'msisdn': u'+12345',
+            u'name': u'Bob',
+            u'user_account': u'owner-1',
+        })
+        d = collection.contact_store.get_contact_by_key("owner-1")
+        yield self.failUnlessFailure(d, ContactNotFoundError)
+
+    @inlineCallbacks
+    def test_delete_non_existent_contact(self):
+        collection = yield self.mk_collection("owner-1")
+        d = collection.delete("bad-contact-id")
+        err = yield self.failUnlessFailure(d, CollectionObjectNotFound)
+        self.assertEqual(str(err), "Contact 'bad-contact-id' not found.")
