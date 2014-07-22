@@ -14,19 +14,16 @@ class ContactsApi(ApiApplication):
         A backend that provides a contact collection factory.
     """
 
-    def __init__(self, config_file=None, **settings):
-        if config_file is None:
-            raise ValueError(
-                "Please specify a config file using --appopts=<config.yaml>")
-        self.config = self.get_config_settings(config_file)
-        self.backend = self._setup_backend()
-        ApiApplication.__init__(self, **settings)
+    config_required = True
 
-    def _setup_backend(self):
-        if "riak_manager" not in self.config:
+    def initialize(self, settings, config):
+        self.backend = self._setup_backend(config)
+
+    def _setup_backend(self, config):
+        if "riak_manager" not in config:
             raise ValueError(
                 "Config file must contain a riak_manager entry.")
-        riak_manager = TxRiakManager.from_config(self.config['riak_manager'])
+        riak_manager = TxRiakManager.from_config(config['riak_manager'])
         backend = RiakContactsBackend(riak_manager)
         return backend
 
