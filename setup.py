@@ -13,7 +13,7 @@ setup(
     include_package_data=True,
     install_requires=[
         'cyclone',
-        'go_api',
+        'go_api>=0.1.3',
         'vumi-go',
     ],
     classifiers=[
