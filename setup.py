@@ -1,7 +1,7 @@
 from setuptools import setup, find_packages
 
 setup(
-    name="go_contacts",
+    name="go-contacts",
     version="0.1.0a",
     url='http://github.com/praekelt/go-contacts-api',
     license='BSD',
