@@ -83,6 +83,8 @@ class RiakContactsCollection(object):
         try:
             contact = yield self.contact_store.get_contact_by_key(object_id)
         except ContactNotFoundError:
+            if isinstance(object_id, unicode):
+                object_id = object_id.encode("utf-8")
             raise CollectionObjectNotFound(object_id, "Contact")
         returnValue(contact.get_data())
 

@@ -31,13 +31,23 @@ class FakeContactsError(Exception):
     Error we can use to craft a different HTTP response.
     """
 
+    def __init__(self, code, reason):
+        super(FakeContactsError, self).__init__()
+        self.code = code
+        self.reason = reason
+        self.data = {
+            u"status_code": code,
+            u"reason": reason,
+        }
+
 
 class FakeContactsApi(object):
     """
     Fake implementation of the Vumi Go contacts API.
     """
 
-    def __init__(self, auth_token, contacts_data):
+    def __init__(self, url_path_prefix, auth_token, contacts_data):
+        self.url_path_prefix = url_path_prefix
         self.auth_token = auth_token
         self.contacts_data = contacts_data
 
@@ -75,7 +85,8 @@ class FakeContactsApi(object):
 
         # TODO: Improve this as our server implementation grows.
 
-        contact_key = request.path.replace("/go/contacts", "").lstrip("/")
+        prefix = "/".join([self.url_path_prefix.rstrip("/"), "contacts"])
+        contact_key = request.path.replace(prefix, "").lstrip("/")
 
         try:
             if not contact_key:
@@ -96,7 +107,7 @@ class FakeContactsApi(object):
                 return self.build_response("", 405)
 
         except FakeContactsError as err:
-            return self.build_response(*err.args)
+            return self.build_response(err.data, err.code)
 
     def check_auth(self, request):
         auth_header = request.headers.get("Authorization")
@@ -108,14 +119,15 @@ class FakeContactsApi(object):
     def _get_contact(self, contact_key):
         contact = self.contacts_data.get(contact_key)
         if contact is None:
-            raise FakeContactsError("Contact not found.", 404)
+            raise FakeContactsError(
+                404, u"Contact %r not found." % (contact_key,))
         return contact
 
     def create_contact(self, request):
         # TODO: Confirm this behaviour against the real API.
         contact_data = json.loads(request.body)
         if u"key" in contact_data:
-            raise FakeContactsError("", 400)
+            raise FakeContactsError(400, "")
         contact = self.make_contact_dict(contact_data)
         self.contacts_data[contact[u"key"]] = contact
         return self.build_response(contact)
