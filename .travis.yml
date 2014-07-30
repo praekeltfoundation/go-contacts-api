@@ -10,7 +10,9 @@ before_install:
 install:
   - "pip install -r requirements.txt --use-wheel"
   - "pip install coveralls --use-wheel"
-  - "python setup.py install"
+  - "pip install -e ."
+  # We need to install the verified fake as well so we can test it.
+  - "pip install -e ./verified-fake"
 script:
   - coverage run --source=go_contacts `which trial` go_contacts
 after_success:
