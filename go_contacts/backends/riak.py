@@ -83,8 +83,6 @@ class RiakContactsCollection(object):
         try:
             contact = yield self.contact_store.get_contact_by_key(object_id)
         except ContactNotFoundError:
-            if isinstance(object_id, unicode):
-                object_id = object_id.encode("utf-8")
             raise CollectionObjectNotFound(object_id, "Contact")
         returnValue(contact.get_data())
 
@@ -117,8 +115,6 @@ class RiakContactsCollection(object):
             contact = yield self.contact_store.update_contact(
                 object_id, **fields)
         except ContactNotFoundError:
-            if isinstance(object_id, unicode):
-                object_id = object_id.encode("utf-8")
             raise CollectionObjectNotFound(object_id, "Contact")
         except ValidationError, e:
             raise CollectionUsageError(str(e))
@@ -132,8 +128,6 @@ class RiakContactsCollection(object):
         try:
             contact = yield self.contact_store.get_contact_by_key(object_id)
         except ContactNotFoundError:
-            if isinstance(object_id, unicode):
-                object_id = object_id.encode("utf-8")
             raise CollectionObjectNotFound(object_id, "Contact")
         contact_data = contact.get_data()
         yield contact.delete()
