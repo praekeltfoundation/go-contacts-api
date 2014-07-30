@@ -36,6 +36,8 @@ class ContactsApiTestMixin(object):
 
     EXPECTED_DATE_FORMAT = "%Y-%m-%d %H:%M:%S.%f"
 
+    OWNER_ID = u"owner-1"
+
     CONTACT_FIELD_DEFAULTS = {
         u'$VERSION': 2,
         u'bbm_pin': None,
@@ -54,7 +56,7 @@ class ContactsApiTestMixin(object):
     def assert_contact(self, contact, expected_partial):
         expected = self.CONTACT_FIELD_DEFAULTS.copy()
         expected.update(expected_partial)
-        expected[u"user_account"] = u"owner-1"
+        expected[u"user_account"] = self.OWNER_ID
         self.assertEqual(contact, expected)
 
     @inlineCallbacks
@@ -220,24 +222,25 @@ class TestContactsApi(VumiTestCase, ContactsApiTestMixin):
         if headers is None:
             headers = {}
         if auth:
-            headers["X-Owner-ID"] = "owner-1"
+            headers["X-Owner-ID"] = self.OWNER_ID.encode("utf-8")
         app_helper = AppHelper(app=api)
         resp = yield app_helper.request(
             method, path, data=body, headers=headers)
         data = yield resp.json()
         returnValue((resp.code, data))
 
+    def _store(self, api):
+        owner = self.OWNER_ID.encode("utf-8")
+        return api.backend.get_contact_collection(owner).contact_store
+
     @inlineCallbacks
     def create_contact(self, api, **contact_data):
-        collection = api.backend.get_contact_collection("owner-1")
-        contact = yield collection.contact_store.new_contact(**contact_data)
+        contact = yield self._store(api).new_contact(**contact_data)
         returnValue(contact.get_data())
 
     @inlineCallbacks
     def get_contact(self, api, contact_key):
-        collection = api.backend.get_contact_collection("owner-1")
-        contact = yield collection.contact_store.get_contact_by_key(
-            contact_key)
+        contact = yield self._store(api).get_contact_by_key(contact_key)
         returnValue(contact.get_data())
 
     @inlineCallbacks
@@ -282,7 +285,8 @@ class TestContactsApi(VumiTestCase, ContactsApiTestMixin):
     @inlineCallbacks
     def test_route(self):
         api = self.mk_api()
-        collection = api.backend.get_contact_collection("owner-1")
+        collection = api.backend.get_contact_collection(
+            self.OWNER_ID.encode("utf-8"))
         key, data = yield collection.create(None, {
             "msisdn": u"+12345",
         })
