@@ -1,4 +1,4 @@
-from setuptools import setup, find_packages
+from setuptools import setup
 
 setup(
     name="fake-go-contacts",
@@ -9,8 +9,7 @@ setup(
     long_description=open('README.rst', 'r').read(),
     author='Praekelt Foundation',
     author_email='dev@praekeltfoundation.org',
-    packages=find_packages(),
-    include_package_data=True,
+    py_modules=['fake_go_contacts'],
     install_requires=[],
     classifiers=[
         'Development Status :: 4 - Beta',
