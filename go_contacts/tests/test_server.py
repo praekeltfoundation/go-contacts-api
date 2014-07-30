@@ -139,8 +139,12 @@ class TestFakeContactsApi(VumiTestCase, ContactsApiTestMixin):
     def setUp(self):
         try:
             from fake_go_contacts import Request, FakeContactsApi
-        except ImportError:
-            self.skipTest("Can't import fake_go_contacts.")
+        except ImportError as err:
+            if "fake_go_contacts" not in err.args[0]:
+                raise
+            raise ImportError(" ".join([
+                err.args[0],
+                "(install from pypi or the 'verified-fake' directory)"]))
 
         self.req_class = Request
         self.api_class = FakeContactsApi
