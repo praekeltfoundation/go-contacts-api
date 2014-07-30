@@ -55,9 +55,6 @@ class ContactsApiTestMixin(object):
         expected = self.CONTACT_FIELD_DEFAULTS.copy()
         expected.update(expected_partial)
         expected[u"user_account"] = u"owner-1"
-        # if isinstance(expected.get(u"created_at"), datetime):
-        #     expected["created_at"] = expected["created_at"].strftime(
-        #         self.EXPECTED_DATE_FORMAT)
         self.assertEqual(contact, expected)
 
     @inlineCallbacks
