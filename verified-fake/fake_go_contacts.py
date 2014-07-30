@@ -79,11 +79,57 @@ class FakeContactsApi(object):
         contact.update(fields)
         return contact
 
+    def _check_fields(self, contact_data):
+        allowed_fields = set(self.make_contact_dict({}).keys())
+        allowed_fields.discard(u"key")
+
+        bad_fields = set(contact_data.keys()) - allowed_fields
+        if bad_fields:
+            raise FakeContactsError(
+                400, "Invalid contact fields: %s" % ", ".join(
+                    sorted(bad_fields)))
+
+    def create_contact(self, contact_data):
+        if not isinstance(contact_data, basestring):
+            # If we don't already have JSON, we want to make some to guarantee
+            # encoding succeeds.
+            contact_data = json.dumps(contact_data)
+        contact_data = json.loads(contact_data)
+        self._check_fields(contact_data)
+
+        contact = self.make_contact_dict(contact_data)
+        self.contacts_data[contact[u"key"]] = contact
+        return contact
+
+    def get_contact(self, contact_key):
+        contact = self.contacts_data.get(contact_key)
+        if contact is None:
+            raise FakeContactsError(
+                404, u"Contact %r not found." % (contact_key,))
+        return contact
+
+    def update_contact(self, contact_key, contact_data):
+        if not isinstance(contact_data, basestring):
+            # If we don't already have JSON, we want to make some to guarantee
+            # encoding succeeds.
+            contact_data = json.dumps(contact_data)
+        contact = self.get_contact(contact_key)
+        update_data = json.loads(contact_data)
+        self._check_fields(update_data)
+        for k, v in update_data.iteritems():
+            contact[k] = v
+        return contact
+
+    def delete_contact(self, contact_key):
+        contact = self.get_contact(contact_key)
+        self.contacts_data.pop(contact_key)
+        return contact
+
+    # The methods below are part of the external API.
+
     def handle_request(self, request):
         if not self.check_auth(request):
             return self.build_response("", 403)
-
-        # TODO: Improve this as our server implementation grows.
 
         prefix = "/".join([self.url_path_prefix.rstrip("/"), "contacts"])
         contact_key = request.path.replace(prefix, "").lstrip("/")
@@ -91,18 +137,18 @@ class FakeContactsApi(object):
         try:
             if not contact_key:
                 if request.method == "POST":
-                    return self.create_contact(request)
+                    return self.handle_create_contact(request)
                 else:
                     return self.build_response("", 405)
 
             if request.method == "GET":
-                return self.get_contact(contact_key, request)
+                return self.handle_get_contact(contact_key, request)
             elif request.method == "PUT":
                 # NOTE: This is an incorrect use of the PUT method, but it's
                 # what we have for now.
-                return self.update_contact(contact_key, request)
+                return self.handle_update_contact(contact_key, request)
             elif request.method == "DELETE":
-                return self.delete_contact(contact_key, request)
+                return self.handle_delete_contact(contact_key, request)
             else:
                 return self.build_response("", 405)
 
@@ -116,38 +162,18 @@ class FakeContactsApi(object):
     def build_response(self, content, code=200, headers=None):
         return Response(code, headers, content)
 
-    def _get_contact(self, contact_key):
-        contact = self.contacts_data.get(contact_key)
-        if contact is None:
-            raise FakeContactsError(
-                404, u"Contact %r not found." % (contact_key,))
-        return contact
-
-    def create_contact(self, request):
-        # TODO: Confirm this behaviour against the real API.
-        contact_data = json.loads(request.body)
-        if u"key" in contact_data:
-            raise FakeContactsError(400, "")
-        contact = self.make_contact_dict(contact_data)
-        self.contacts_data[contact[u"key"]] = contact
+    def handle_create_contact(self, request):
+        contact = self.create_contact(request.body)
         return self.build_response(contact)
 
-    def get_contact(self, contact_key, request):
-        # TODO: Confirm this behaviour against the real API.
-        contact = self._get_contact(contact_key)
+    def handle_get_contact(self, contact_key, request):
+        contact = self.get_contact(contact_key)
         return self.build_response(contact)
 
-    def update_contact(self, contact_key, request):
-        # TODO: Confirm this behaviour against the real API.
-        contact = self._get_contact(contact_key)
-        update_data = json.loads(request.body)
-        for k, v in update_data.iteritems():
-            # TODO: Reject changes to key?
-            contact[k] = v
+    def handle_update_contact(self, contact_key, request):
+        contact = self.update_contact(contact_key, request.body)
         return self.build_response(contact)
 
-    def delete_contact(self, contact_key, request):
-        # TODO: Confirm this behaviour against the real API.
-        contact = self._get_contact(contact_key)
-        self.contacts_data.pop(contact_key)
+    def handle_delete_contact(self, contact_key, request):
+        contact = self.delete_contact(contact_key)
         return self.build_response(contact)

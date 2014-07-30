@@ -2,12 +2,11 @@
 Tests for contacts API cyclone server.
 """
 
-from datetime import datetime
 import json
 
 import yaml
 
-from twisted.internet.defer import inlineCallbacks, returnValue
+from twisted.internet.defer import inlineCallbacks, returnValue, maybeDeferred
 
 from vumi.persist.txriak_manager import TxRiakManager
 from vumi.tests.helpers import VumiTestCase
@@ -24,6 +23,15 @@ class ContactsApiTestMixin(object):
         raise NotImplementedError()
 
     def request(self, api, method, path, body=None, headers=None, auth=True):
+        raise NotImplementedError()
+
+    def create_contact(self, api, **contact_data):
+        raise NotImplementedError()
+
+    def get_contact(self, api, contact_key):
+        raise NotImplementedError()
+
+    def contact_exists(self, api, contact_key):
         raise NotImplementedError()
 
     EXPECTED_DATE_FORMAT = "%Y-%m-%d %H:%M:%S.%f"
@@ -46,15 +54,144 @@ class ContactsApiTestMixin(object):
     def assert_contact(self, contact, expected_partial):
         expected = self.CONTACT_FIELD_DEFAULTS.copy()
         expected.update(expected_partial)
-        if isinstance(expected.get("created_at"), datetime):
-            expected["created_at"] = expected["created_at"].strftime(
-                self.EXPECTED_DATE_FORMAT)
+        expected[u"user_account"] = u"owner-1"
+        # if isinstance(expected.get(u"created_at"), datetime):
+        #     expected["created_at"] = expected["created_at"].strftime(
+        #         self.EXPECTED_DATE_FORMAT)
         self.assertEqual(contact, expected)
+
+    @inlineCallbacks
+    def test_get(self):
+        api = self.mk_api()
+        contact = yield self.create_contact(
+            api, name=u"Bob", msisdn=u"+12345")
+
+        contact_key = contact[u"key"]
+        (code, data) = yield self.request(
+            api, "GET", "/contacts/" + contact_key)
+        self.assertEqual(code, 200)
+        self.assert_contact(data, {
+            u'key': contact[u"key"],
+            u'created_at': contact[u"created_at"],
+            u'msisdn': u'+12345',
+            u'name': u'Bob',
+        })
 
     @inlineCallbacks
     def test_get_non_existent_contact(self):
         api = self.mk_api()
         (code, data) = yield self.request(api, "GET", "/contacts/bad-id")
+        self.assertEqual(code, 404)
+        self.assertEqual(data, {
+            u"status_code": 404,
+            u"reason": u"Contact 'bad-id' not found.",
+        })
+
+    @inlineCallbacks
+    def test_create(self):
+        api = self.mk_api()
+        (code, contact) = yield self.request(
+            api, "POST", "/contacts/", json.dumps({
+                u"msisdn": u"+12345",
+                u"name": u"Arthur",
+                u"surname": u"of Camelot",
+            }))
+        self.assertEqual(code, 200)
+        contact_key = contact[u"key"]
+        self.assert_contact(contact, {
+            u"key": contact_key,
+            u"created_at": contact[u"created_at"],
+            u"msisdn": u"+12345",
+            u"name": u"Arthur",
+            u"surname": u"of Camelot",
+        })
+
+        stored_contact = yield self.get_contact(api, contact_key)
+        self.assert_contact(stored_contact, contact)
+
+    @inlineCallbacks
+    def test_create_invalid_fields(self):
+        api = self.mk_api()
+        (code, data) = yield self.request(
+            api, "POST", "/contacts/", json.dumps({
+                u"unknown_field": u"foo",
+                u"not_the_field": u"bar",
+            }))
+        self.assertEqual(code, 400)
+        self.assertEqual(data, {
+            u"status_code": 400,
+            u"reason": u"Invalid contact fields: not_the_field, unknown_field",
+        })
+
+    @inlineCallbacks
+    def test_update(self):
+        api = self.mk_api()
+        contact = yield self.create_contact(
+            api, name=u"Bob", msisdn=u"+12345")
+
+        contact_key = contact[u"key"]
+        (code, new_contact) = yield self.request(
+            api, "PUT", "/contacts/" + contact_key, json.dumps({
+                "msisdn": u"+6789",
+            }))
+        self.assertEqual(code, 200)
+        self.assert_contact(new_contact, {
+            u"key": contact_key,
+            u"created_at": contact[u"created_at"],
+            u"msisdn": u"+6789",
+            u"name": u"Bob",
+        })
+
+    @inlineCallbacks
+    def test_update_non_existent_contact(self):
+        api = self.mk_api()
+        (code, data) = yield self.request(
+            api, "PUT", "/contacts/bad-id", json.dumps({
+                "msisdn": u"+6789",
+            }))
+        self.assertEqual(code, 404)
+        self.assertEqual(data, {
+            u"status_code": 404,
+            u"reason": u"Contact 'bad-id' not found.",
+        })
+
+    @inlineCallbacks
+    def test_update_invalid_fields(self):
+        api = self.mk_api()
+        contact = yield self.create_contact(
+            api, name=u"Bob", msisdn=u"+12345")
+
+        contact_key = contact[u"key"]
+        (code, data) = yield self.request(
+            api, "PUT", "/contacts/" + contact_key, json.dumps({
+                u"unknown_field": u"foo",
+                u"not_the_field": u"bar",
+            }))
+        self.assertEqual(code, 400)
+        self.assertEqual(data, {
+            u"status_code": 400,
+            u"reason": u"Invalid contact fields: not_the_field, unknown_field",
+        })
+
+    @inlineCallbacks
+    def test_delete(self):
+        api = self.mk_api()
+        contact = yield self.create_contact(
+            api, name=u"Bob", msisdn=u"+12345")
+
+        contact_key = contact[u"key"]
+        (code, deleted_contact) = yield self.request(
+            api, "DELETE", "/contacts/" + contact_key)
+        self.assertEqual(code, 200)
+        self.assert_contact(deleted_contact, contact)
+
+        exists = yield self.contact_exists(api, contact_key)
+        self.assertFalse(exists)
+
+    @inlineCallbacks
+    def test_delete_non_existent_contact(self):
+        api = self.mk_api()
+        (code, data) = yield self.request(api, "DELETE", "/contacts/bad-id")
         self.assertEqual(code, 404)
         self.assertEqual(data, {
             u"status_code": 404,
@@ -88,9 +225,33 @@ class TestContactsApi(VumiTestCase, ContactsApiTestMixin):
         if auth:
             headers["X-Owner-ID"] = "owner-1"
         app_helper = AppHelper(app=api)
-        resp = yield app_helper.request(method, path, headers=headers)
+        resp = yield app_helper.request(
+            method, path, data=body, headers=headers)
         data = yield resp.json()
         returnValue((resp.code, data))
+
+    @inlineCallbacks
+    def create_contact(self, api, **contact_data):
+        collection = api.backend.get_contact_collection("owner-1")
+        contact = yield collection.contact_store.new_contact(**contact_data)
+        returnValue(contact.get_data())
+
+    @inlineCallbacks
+    def get_contact(self, api, contact_key):
+        collection = api.backend.get_contact_collection("owner-1")
+        contact = yield collection.contact_store.get_contact_by_key(
+            contact_key)
+        returnValue(contact.get_data())
+
+    @inlineCallbacks
+    def contact_exists(self, api, contact_key):
+        from go.vumitools.contact.models import ContactNotFoundError
+        try:
+            yield self.get_contact(api, contact_key)
+        except ContactNotFoundError:
+            returnValue(False)
+        else:
+            returnValue(True)
 
     def test_init(self):
         configfile = self.mk_config({
@@ -158,5 +319,20 @@ class TestFakeContactsApi(VumiTestCase, ContactsApiTestMixin):
         if auth:
             headers["Authorization"] = "Bearer token-1"
         resp = api.handle_request(self.req_class(
-            method, path, headers=headers))
+            method, path, body=body, headers=headers))
         return resp.code, json.loads(resp.body)
+
+    def create_contact(self, api, **contact_data):
+        return api.create_contact(contact_data)
+
+    def get_contact(self, api, contact_key):
+        return api.get_contact(contact_key)
+
+    def contact_exists(self, api, contact_key):
+        from fake_go_contacts import FakeContactsError
+        try:
+            self.get_contact(api, contact_key)
+        except FakeContactsError:
+            return False
+        else:
+            return True
