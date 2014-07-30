@@ -9,12 +9,20 @@ then
 fi
 
 function inplace_sed {
-  # Note: we don't use sed -i -e ... because it isn't supported by FreeBSD
-  # sed on OS X.
-  suffix=".inplace.bak"
-  sed -i"$suffix" -e "$1" "$2"
-  rm "$2$suffix"
+    # Note: we don't use sed -i -e ... because it isn't supported by FreeBSD
+    # sed on OS X.
+    local command="$1"; shift
+    local suffix=".inplace.bak"
+    sed -i"${suffix}" -e "${command}" "$@"
+    for filename in "$@"; do
+        rm "${filename}${suffix}"
+    done
 }
 
-inplace_sed "s/\(version[ ]*=[ ]*[\"']\)\(.*\)\([\"'].*\)/\1${VER}\3/" setup.py
-inplace_sed "s/^\(__version__[ ]*=[ ]*[\"']\)\(.*\)\([\"'].*\)/\1${VER}\3/" go_contacts/__init__.py
+setup_sed="s/\(version[ ]*=[ ]*[\"']\)\(.*\)\([\"'].*\)/\1${VER}\3/"
+init_sed="s/^\(__version__[ ]*=[ ]*[\"']\)\(.*\)\([\"'].*\)/\1${VER}\3/"
+
+inplace_sed "${setup_sed}" setup.py verified-fake/setup.py
+inplace_sed "${init_sed}" go_contacts/__init__.py
+
+git add setup.py verified-fake/setup.py go_contacts/__init__.py
