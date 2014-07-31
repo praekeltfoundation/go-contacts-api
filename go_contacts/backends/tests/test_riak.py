@@ -66,6 +66,8 @@ class TestRiakContactsCollection(VumiTestCase):
         u'surname': None,
         u'twitter_handle': None,
         u'wechat_id': None,
+        u'extra': {},
+        u'subscription': {},
     }
 
     def assert_contact(self, contact, expected_partial):

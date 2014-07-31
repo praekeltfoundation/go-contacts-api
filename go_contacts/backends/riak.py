@@ -14,6 +14,24 @@ from go_api.collections.errors import (
     CollectionObjectNotFound, CollectionUsageError)
 
 
+def contact_to_dict(contact):
+    """
+    Turn a contact into a dict we can return.
+
+    TODO: Move this into the contact model in vumi-go or something.
+    """
+    contact_dict = {
+        u"extra": dict(contact.extra),
+        u"subscription": dict(contact.subscription),
+    }
+    for key, value in contact.get_data().iteritems():
+        if key.startswith(u"extras-") or key.startswith(u"subscription-"):
+            # We already have these.
+            continue
+        contact_dict[key] = value
+    return contact_dict
+
+
 class RiakContactsBackend(object):
     def __init__(self, riak_manager):
         self.riak_manager = riak_manager
@@ -84,7 +102,7 @@ class RiakContactsCollection(object):
             contact = yield self.contact_store.get_contact_by_key(object_id)
         except ContactNotFoundError:
             raise CollectionObjectNotFound(object_id, "Contact")
-        returnValue(contact.get_data())
+        returnValue(contact_to_dict(contact))
 
     @inlineCallbacks
     def create(self, object_id, data):
@@ -101,7 +119,7 @@ class RiakContactsCollection(object):
             contact = yield self.contact_store.new_contact(**fields)
         except ValidationError, e:
             raise CollectionUsageError(str(e))
-        returnValue((contact.key, contact.get_data()))
+        returnValue((contact.key, contact_to_dict(contact)))
 
     @inlineCallbacks
     def update(self, object_id, data):
@@ -118,7 +136,7 @@ class RiakContactsCollection(object):
             raise CollectionObjectNotFound(object_id, "Contact")
         except ValidationError, e:
             raise CollectionUsageError(str(e))
-        returnValue(contact.get_data())
+        returnValue(contact_to_dict(contact))
 
     @inlineCallbacks
     def delete(self, object_id):
@@ -129,6 +147,6 @@ class RiakContactsCollection(object):
             contact = yield self.contact_store.get_contact_by_key(object_id)
         except ContactNotFoundError:
             raise CollectionObjectNotFound(object_id, "Contact")
-        contact_data = contact.get_data()
+        contact_data = contact_to_dict(contact)
         yield contact.delete()
         returnValue(contact_data)
