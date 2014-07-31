@@ -6,7 +6,7 @@ import json
 
 import yaml
 
-from twisted.internet.defer import inlineCallbacks, returnValue, maybeDeferred
+from twisted.internet.defer import inlineCallbacks, returnValue
 
 from vumi.persist.txriak_manager import TxRiakManager
 from vumi.tests.helpers import VumiTestCase
@@ -14,7 +14,7 @@ from vumi.tests.helpers import PersistenceHelper
 
 from go_api.cyclone.helpers import AppHelper
 
-from go_contacts.backends.riak import RiakContactsBackend
+from go_contacts.backends.riak import RiakContactsBackend, contact_to_dict
 from go_contacts.server import ContactsApi
 
 
@@ -51,6 +51,8 @@ class ContactsApiTestMixin(object):
         u'surname': None,
         u'twitter_handle': None,
         u'wechat_id': None,
+        u'extra': {},
+        u'subscription': {},
     }
 
     def assert_contact(self, contact, expected_partial):
@@ -59,6 +61,17 @@ class ContactsApiTestMixin(object):
         expected[u"user_account"] = self.OWNER_ID
         self.assertEqual(contact, expected)
 
+    def assert_contact_response(self, response, expected_partial):
+        expected = self.CONTACT_FIELD_DEFAULTS.copy()
+        expected.update(expected_partial)
+        expected[u"user_account"] = self.OWNER_ID
+        data = response[1]
+        if u"key" in data:
+            expected.setdefault(u"key", data[u"key"])
+            expected.setdefault(u"created_at", data[u"created_at"])
+        self.assertEqual(response, (200, expected))
+        return data
+
     @inlineCallbacks
     def test_get(self):
         api = self.mk_api()
@@ -66,10 +79,9 @@ class ContactsApiTestMixin(object):
             api, name=u"Bob", msisdn=u"+12345")
 
         contact_key = contact[u"key"]
-        (code, data) = yield self.request(
+        resp = yield self.request(
             api, "GET", "/contacts/" + contact_key)
-        self.assertEqual(code, 200)
-        self.assert_contact(data, {
+        self.assert_contact_response(resp, {
             u'key': contact[u"key"],
             u'created_at': contact[u"created_at"],
             u'msisdn': u'+12345',
@@ -89,21 +101,45 @@ class ContactsApiTestMixin(object):
     @inlineCallbacks
     def test_create(self):
         api = self.mk_api()
-        (code, contact) = yield self.request(
+        resp = yield self.request(
             api, "POST", "/contacts/", json.dumps({
                 u"msisdn": u"+12345",
                 u"name": u"Arthur",
                 u"surname": u"of Camelot",
             }))
-        self.assertEqual(code, 200)
-        contact_key = contact[u"key"]
-        self.assert_contact(contact, {
-            u"key": contact_key,
-            u"created_at": contact[u"created_at"],
+        contact = self.assert_contact_response(resp, {
             u"msisdn": u"+12345",
             u"name": u"Arthur",
             u"surname": u"of Camelot",
         })
+        contact_key = contact[u"key"]
+
+        stored_contact = yield self.get_contact(api, contact_key)
+        self.assert_contact(stored_contact, contact)
+
+    @inlineCallbacks
+    def test_create_with_extras(self):
+        api = self.mk_api()
+        resp = yield self.request(
+            api, "POST", "/contacts/", json.dumps({
+                u"msisdn": u"+12345",
+                u"name": u"Arthur",
+                u"surname": u"of Camelot",
+                u"extra": {
+                    u"quest": u"Grail",
+                    u"government": u"monarchy",
+                },
+            }))
+        contact = self.assert_contact_response(resp, {
+            u"msisdn": u"+12345",
+            u"name": u"Arthur",
+            u"surname": u"of Camelot",
+            u"extra": {
+                u"quest": u"Grail",
+                u"government": u"monarchy",
+            },
+        })
+        contact_key = contact[u"key"]
 
         stored_contact = yield self.get_contact(api, contact_key)
         self.assert_contact(stored_contact, contact)
@@ -129,12 +165,11 @@ class ContactsApiTestMixin(object):
             api, name=u"Bob", msisdn=u"+12345")
 
         contact_key = contact[u"key"]
-        (code, new_contact) = yield self.request(
+        resp = yield self.request(
             api, "PUT", "/contacts/" + contact_key, json.dumps({
                 "msisdn": u"+6789",
             }))
-        self.assertEqual(code, 200)
-        self.assert_contact(new_contact, {
+        self.assert_contact_response(resp, {
             u"key": contact_key,
             u"created_at": contact[u"created_at"],
             u"msisdn": u"+6789",
@@ -142,17 +177,60 @@ class ContactsApiTestMixin(object):
         })
 
     @inlineCallbacks
+    def test_update_extras(self):
+        api = self.mk_api()
+        contact = yield self.create_contact(
+            api, name=u"Arthur", msisdn=u"+12345")
+
+        contact_key = contact[u"key"]
+        resp = yield self.request(
+            api, "PUT", "/contacts/" + contact_key, json.dumps({
+                u"msisdn": u"+6789",
+                u"extra": {
+                    u"quest": u"Grail",
+                    u"government": u"monarchy",
+                },
+            }))
+        self.assert_contact_response(resp, {
+            u"key": contact_key,
+            u"created_at": contact[u"created_at"],
+            u"msisdn": u"+6789",
+            u"name": u"Arthur",
+            u"extra": {
+                u"quest": u"Grail",
+                u"government": u"monarchy",
+            },
+        })
+
+        resp = yield self.request(
+            api, "PUT", "/contacts/" + contact_key, json.dumps({
+                u"extra": {
+                    u"government": u"repressive",
+                    u"assistant": u"Patsy",
+                },
+            }))
+        self.assert_contact_response(resp, {
+            u"key": contact_key,
+            u"created_at": contact[u"created_at"],
+            u"msisdn": u"+6789",
+            u"name": u"Arthur",
+            u"extra": {
+                u"government": u"repressive",
+                u"assistant": u"Patsy",
+            },
+        })
+
+    @inlineCallbacks
     def test_update_non_existent_contact(self):
         api = self.mk_api()
-        (code, data) = yield self.request(
+        resp = yield self.request(
             api, "PUT", "/contacts/bad-id", json.dumps({
                 "msisdn": u"+6789",
             }))
-        self.assertEqual(code, 404)
-        self.assertEqual(data, {
+        self.assertEqual(resp, (404, {
             u"status_code": 404,
             u"reason": u"Contact 'bad-id' not found.",
-        })
+        }))
 
     @inlineCallbacks
     def test_update_invalid_fields(self):
@@ -161,16 +239,15 @@ class ContactsApiTestMixin(object):
             api, name=u"Bob", msisdn=u"+12345")
 
         contact_key = contact[u"key"]
-        (code, data) = yield self.request(
+        resp = yield self.request(
             api, "PUT", "/contacts/" + contact_key, json.dumps({
                 u"unknown_field": u"foo",
                 u"not_the_field": u"bar",
             }))
-        self.assertEqual(code, 400)
-        self.assertEqual(data, {
+        self.assertEqual(resp, (400, {
             u"status_code": 400,
             u"reason": u"Invalid contact fields: not_the_field, unknown_field",
-        })
+        }))
 
     @inlineCallbacks
     def test_delete(self):
@@ -179,10 +256,9 @@ class ContactsApiTestMixin(object):
             api, name=u"Bob", msisdn=u"+12345")
 
         contact_key = contact[u"key"]
-        (code, deleted_contact) = yield self.request(
+        resp = yield self.request(
             api, "DELETE", "/contacts/" + contact_key)
-        self.assertEqual(code, 200)
-        self.assert_contact(deleted_contact, contact)
+        self.assert_contact_response(resp, contact)
 
         exists = yield self.contact_exists(api, contact_key)
         self.assertFalse(exists)
@@ -190,12 +266,11 @@ class ContactsApiTestMixin(object):
     @inlineCallbacks
     def test_delete_non_existent_contact(self):
         api = self.mk_api()
-        (code, data) = yield self.request(api, "DELETE", "/contacts/bad-id")
-        self.assertEqual(code, 404)
-        self.assertEqual(data, {
+        resp = yield self.request(api, "DELETE", "/contacts/bad-id")
+        self.assertEqual(resp, (404, {
             u"status_code": 404,
             u"reason": u"Contact 'bad-id' not found.",
-        })
+        }))
 
 
 class TestContactsApi(VumiTestCase, ContactsApiTestMixin):
@@ -236,12 +311,12 @@ class TestContactsApi(VumiTestCase, ContactsApiTestMixin):
     @inlineCallbacks
     def create_contact(self, api, **contact_data):
         contact = yield self._store(api).new_contact(**contact_data)
-        returnValue(contact.get_data())
+        returnValue(contact_to_dict(contact))
 
     @inlineCallbacks
     def get_contact(self, api, contact_key):
         contact = yield self._store(api).get_contact_by_key(contact_key)
-        returnValue(contact.get_data())
+        returnValue(contact_to_dict(contact))
 
     @inlineCallbacks
     def contact_exists(self, api, contact_key):
@@ -294,7 +369,7 @@ class TestContactsApi(VumiTestCase, ContactsApiTestMixin):
         code, data = yield self.request(
             api, "GET", '/contacts/%s' % (key,))
         self.assertEqual(code, 200)
-        self.assertEqual(data, contact.get_data())
+        self.assertEqual(data, contact_to_dict(contact))
 
 
 class TestFakeContactsApi(VumiTestCase, ContactsApiTestMixin):

@@ -75,6 +75,8 @@ class FakeContactsApi(object):
             u'wechat_id': None,
             u'email_address': None,
             u'gtalk_id': None,
+            u'extra': {},
+            u'subscription': {},
         }
         contact.update(fields)
         return contact
