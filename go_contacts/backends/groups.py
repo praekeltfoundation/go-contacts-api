@@ -63,3 +63,15 @@ class RiakGroupsCollection(object):
         if not isinstance(group, ContactGroup):
             raise CollectionObjectNotFound(object_id, "Group")
         returnValue(group_to_dict(group))
+
+    @inlineCallbacks
+    def create(self, object_id, data):
+        return NotImplementedError
+
+    @inlineCallbacks
+    def update(self, object_id, data):
+        return NotImplementedError
+
+    @inlineCallbacks
+    def delete(self, object_id):
+        return NotImplementedError
