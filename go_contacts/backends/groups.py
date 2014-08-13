@@ -30,7 +30,7 @@ class RiakGroupsBackend(object):
     def __init__(self, riak_manager):
         self.riak_manager = riak_manager
 
-    def get_contact_collection(self, owner_id):
+    def get_group_collection(self, owner_id):
         contact_store = ContactStore(self.riak_manager, owner_id)
         return RiakGroupsCollection(contact_store)
 
@@ -45,7 +45,7 @@ class RiakGroupsCollection(object):
     def _pick_group_fields(cls, data):
         """
         Return a sub-dictionary of the items from ``data`` that are valid
-        contact fields.
+        group fields.
         """
         return RiakContactsCollection._pick_fields(
             data, ContactGroup.field_descriptors.keys())

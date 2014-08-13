@@ -34,7 +34,7 @@ class TestRiakGroupsBackend(VumiTestCase):
     @inlineCallbacks
     def test_get_groups_collection(self):
         backend = yield self.mk_backend()
-        collection = backend.get_contact_collection(u'owner-1')
+        collection = backend.get_group_collection(u'owner-1')
         self.assertEqual(collection.contact_store.user_account_key, u'owner-1')
         self.assertTrue(isinstance(collection, RiakGroupsCollection))
 
