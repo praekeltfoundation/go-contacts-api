@@ -192,3 +192,65 @@ class TestRiakGroupsCollection(VumiTestCase):
         err = yield self.failUnlessFailure(d, CollectionUsageError)
         self.assertEqual(
             str(err), 'The group name must be specified in group creation')
+
+    @inlineCallbacks
+    def test_update(self):
+        collection = yield self.mk_collection("owner-1")
+        new_group = yield collection.contact_store.new_group(u"Bob")
+        group = yield collection.update(new_group.key, {
+            'name': u'Susan',
+        })
+        self.assert_group(group, {
+            u'key': new_group.key,
+            u'created_at': new_group.created_at,
+            u'name': u'Susan',
+            u'user_account': u'owner-1',
+        })
+
+    @inlineCallbacks
+    def test_update_query(self):
+        collection = yield self.mk_collection("owner-1")
+        new_group = yield collection.contact_store.new_smart_group(
+            u'Bob', u'testquery')
+        group = yield collection.update(new_group.key, {
+            'name': u'Susan',
+            'query': u'differenttestquery',
+        })
+        self.assert_group(group, {
+            u'key': new_group.key,
+            u'created_at': new_group.created_at,
+            u'name': u'Susan',
+            u'query': u'differenttestquery',
+            u'user_account': u'owner-1',
+        })
+
+    @inlineCallbacks
+    def test_update_non_existent_group(self):
+        collection = yield self.mk_collection("owner-1")
+        d = collection.update(u"bad-group-id", {})
+        err = yield self.failUnlessFailure(d, CollectionObjectNotFound)
+        self.assertEqual(
+            str(err), "Object u'Group with key bad-group-id' not found.")
+
+    @inlineCallbacks
+    def test_update_invalid_fields(self):
+        collection = yield self.mk_collection("owner-1")
+        new_group = yield collection.contact_store.new_group(u"Bob")
+        d = collection.update(new_group.key, {
+            "unknown_field": u"foo",
+            "not_the_field": u"bar",
+        })
+        err = yield self.failUnlessFailure(d, CollectionUsageError)
+        self.assertEqual(
+            str(err), "Invalid group fields: not_the_field, unknown_field")
+
+    @inlineCallbacks
+    def test_update_invalid_field_value(self):
+        collection = yield self.mk_collection("owner-1")
+        new_group = yield collection.contact_store.new_group(u"Bob")
+        d = collection.update(new_group.key, {
+            "name": None,
+        })
+        err = yield self.failUnlessFailure(d, CollectionUsageError)
+        self.assertEqual(
+            str(err), "None is not allowed as a value for non-null fields.")

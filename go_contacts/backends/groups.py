@@ -37,6 +37,7 @@ class RiakGroupsBackend(object):
 
 @implementer(ICollection)
 class RiakGroupsCollection(object):
+
     def __init__(self, contact_store):
         self.contact_store = contact_store
 
@@ -121,7 +122,20 @@ class RiakGroupsCollection(object):
 
         ``object_id`` may not be ``None``.
         """
-        return NotImplementedError
+        fields = self._check_group_fields(data)
+        fields = self.contact_store.settable_contact_fields(**fields)
+
+        group = yield self.contact_store.get_group(object_id)
+        if group is None:
+            raise CollectionObjectNotFound(
+                "Group with key %s" % object_id)
+        try:
+            for field_name, field_value in fields.iteritems():
+                setattr(group, field_name, field_value)
+        except ValidationError, e:
+            raise CollectionUsageError(str(e))
+        yield group.save()
+        returnValue(group_to_dict(group))
 
     @inlineCallbacks
     def delete(self, object_id):
