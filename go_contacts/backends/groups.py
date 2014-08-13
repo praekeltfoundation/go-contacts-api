@@ -61,7 +61,7 @@ class RiakGroupsCollection(object):
         valid_keys = set(fields.keys())
         if given_keys != valid_keys:
             raise CollectionUsageError(
-                "Invalid group fields: %s" % ", ".join(
+                'Invalid group fields: %s' % ', '.join(
                     sorted(given_keys - valid_keys)))
         return fields
 
@@ -88,7 +88,7 @@ class RiakGroupsCollection(object):
         """
         group = yield self.contact_store.get_group(object_id)
         if not isinstance(group, ContactGroup):
-            raise CollectionObjectNotFound(object_id, "Group")
+            raise CollectionObjectNotFound(object_id, u'Group')
         returnValue(group_to_dict(group))
 
     @inlineCallbacks
@@ -101,16 +101,16 @@ class RiakGroupsCollection(object):
         fields = self._check_group_fields(data)
         if object_id is not None:
             raise CollectionUsageError(
-                "A group key may not be specified in group creation")
-        if 'name' not in fields:
+                u'A group key may not be specified in group creation')
+        if u'name' not in fields:
             raise CollectionUsageError(
-                "The group name must be specified in group creation")
+                u'The group name must be specified in group creation')
         try:
-            if 'query' in fields:
+            if u'query' in fields:
                 group = yield self.contact_store.new_smart_group(
-                    fields['name'], fields['query'])
+                    fields[u'name'], fields[u'query'])
             else:
-                group = yield self.contact_store.new_group(fields['name'])
+                group = yield self.contact_store.new_group(fields[u'name'])
         except ValidationError, e:
             raise CollectionUsageError(str(e))
         returnValue((group.key, group_to_dict(group)))
@@ -126,9 +126,8 @@ class RiakGroupsCollection(object):
         fields = self.contact_store.settable_contact_fields(**fields)
 
         group = yield self.contact_store.get_group(object_id)
-        if group is None:
-            raise CollectionObjectNotFound(
-                "Group with key %s" % object_id)
+        if not isinstance(group, ContactGroup):
+            raise CollectionObjectNotFound(object_id, u'Group')
         try:
             for field_name, field_value in fields.iteritems():
                 setattr(group, field_name, field_value)
@@ -142,4 +141,9 @@ class RiakGroupsCollection(object):
         """
         Delete an object. May return a deferred.
         """
-        return NotImplementedError
+        group = yield self.contact_store.get_group(object_id)
+        if not isinstance(group, ContactGroup):
+            raise CollectionObjectNotFound(object_id, u'Group')
+        group_data = group_to_dict(group)
+        yield group.delete()
+        returnValue(group_data)
