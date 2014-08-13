@@ -106,7 +106,7 @@ class RiakGroupsCollection(object):
             raise CollectionUsageError(
                 u'The group name must be specified in group creation')
         try:
-            if u'query' in fields:
+            if u'query' in fields and fields[u'query'] is not None:
                 group = yield self.contact_store.new_smart_group(
                     fields[u'name'], fields[u'query'])
             else:
