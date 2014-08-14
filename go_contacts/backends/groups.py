@@ -25,6 +25,13 @@ def group_to_dict(group):
         group_dict[key] = value
     return group_dict
 
+NONSETTABLE_GROUP_FIELDS = ['$VERSION', 'user_account']
+
+
+def settable_group_fields(**fields):
+    return dict((k, v) for k, v in fields.iteritems()
+                if k not in NONSETTABLE_GROUP_FIELDS)
+
 
 class RiakGroupsBackend(object):
     def __init__(self, riak_manager):
@@ -123,7 +130,7 @@ class RiakGroupsCollection(object):
         ``object_id`` may not be ``None``.
         """
         fields = self._check_group_fields(data)
-        fields = self.contact_store.settable_contact_fields(**fields)
+        fields = settable_group_fields(**fields)
 
         group = yield self.contact_store.get_group(object_id)
         if not isinstance(group, ContactGroup):
