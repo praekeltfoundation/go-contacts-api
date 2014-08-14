@@ -14,8 +14,8 @@ from vumi.tests.helpers import PersistenceHelper
 
 from go_api.cyclone.helpers import AppHelper
 
-from go_contacts.backends.riak import (RiakContactsBackend, contact_to_dict,
-                                       group_to_dict, RiakGroupsBackend)
+from go_contacts.backends.riak import (
+    RiakContactsBackend, contact_to_dict, group_to_dict, RiakGroupsBackend)
 from go_contacts.server import ContactsApi
 from go_contacts.tests.test_server_groups import GroupsApiTestMixin
 from go_api.collections.errors import CollectionObjectNotFound
