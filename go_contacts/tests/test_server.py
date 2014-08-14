@@ -14,8 +14,11 @@ from vumi.tests.helpers import PersistenceHelper
 
 from go_api.cyclone.helpers import AppHelper
 
-from go_contacts.backends.riak import RiakContactsBackend, contact_to_dict
+from go_contacts.backends.riak import (RiakContactsBackend, contact_to_dict,
+                                       group_to_dict, RiakGroupsBackend)
 from go_contacts.server import ContactsApi
+from go_contacts.tests.test_server_groups import GroupsApiTestMixin
+from go_api.collections.errors import CollectionObjectNotFound
 
 
 class ContactsApiTestMixin(object):
@@ -355,6 +358,7 @@ class TestContactsApi(VumiTestCase, ContactsApiTestMixin):
         api = self.mk_api()
         self.assertEqual(api.collections, (
             ('/contacts', api.backend.get_contact_collection),
+            ('/groups', api.group_backend.get_group_collection),
         ))
 
     @inlineCallbacks
@@ -412,3 +416,74 @@ class TestFakeContactsApi(VumiTestCase, ContactsApiTestMixin):
             return False
         else:
             return True
+
+
+class TestGroupsApi(VumiTestCase, GroupsApiTestMixin):
+    def setUp(self):
+        self.persistence_helper = self.add_helper(
+            PersistenceHelper(use_riak=True, is_sync=False))
+
+    def mk_config(self, config_dict):
+        tempfile = self.mktemp()
+        with open(tempfile, 'wb') as fp:
+            yaml.safe_dump(config_dict, fp)
+        return tempfile
+
+    def mk_api(self):
+        configfile = self.mk_config({
+            "riak_manager": {
+                "bucket_prefix": "test",
+            },
+        })
+        return ContactsApi(configfile)
+
+    @inlineCallbacks
+    def create_group(self, api, name, query=None):
+        if query is not None:
+            group = yield self._store(api).new_smart_group(name, query)
+        else:
+            group = yield self._store(api).new_group(name)
+        returnValue(group_to_dict(group))
+
+    def _store(self, api):
+        owner = self.OWNER_ID.encode("utf-8")
+        return api.backend.get_contact_collection(owner).contact_store
+
+    @inlineCallbacks
+    def get_group(self, api, key):
+        group = yield self._store(api).get_group(key)
+        if group is None:
+            raise CollectionObjectNotFound(key, u'Group')
+        returnValue(group_to_dict(group))
+
+    @inlineCallbacks
+    def request(self, api, method, path, body=None, headers=None, auth=True):
+        if headers is None:
+            headers = {}
+        if auth:
+            headers["X-Owner-ID"] = self.OWNER_ID.encode("utf-8")
+        app_helper = AppHelper(app=api)
+        resp = yield app_helper.request(
+            method, path, data=body, headers=headers)
+        data = yield resp.json()
+        returnValue((resp.code, data))
+
+    @inlineCallbacks
+    def group_exists(self, api, group_key):
+        try:
+            yield self.get_group(api, group_key)
+        except CollectionObjectNotFound:
+            returnValue(False)
+        else:
+            returnValue(True)
+
+    def test_init(self):
+        configfile = self.mk_config({
+            "riak_manager": {
+                "bucket_prefix": "test",
+            },
+        })
+        api = ContactsApi(configfile)
+        self.assertTrue(isinstance(api.group_backend, RiakGroupsBackend))
+        self.assertTrue(isinstance(api.group_backend.riak_manager,
+                                   TxRiakManager))
