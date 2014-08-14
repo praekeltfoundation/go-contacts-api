@@ -487,3 +487,17 @@ class TestGroupsApi(VumiTestCase, GroupsApiTestMixin):
         self.assertTrue(isinstance(api.group_backend, RiakGroupsBackend))
         self.assertTrue(isinstance(api.group_backend.riak_manager,
                                    TxRiakManager))
+
+    def test_init_no_riak_config(self):
+        badconfigfile = self.mk_config({})
+        configfile = self.mk_config({
+            "riak_manager": {
+                "bucket_prefix": "test",
+            },
+        })
+        api = ContactsApi(configfile)
+        err = self.assertRaises(ValueError, api._setup_groups_backend,
+                                badconfigfile)
+        self.assertEqual(
+            str(err),
+            "Config file must contain a riak_manager entry.")
