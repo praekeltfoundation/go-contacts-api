@@ -71,6 +71,7 @@ class ContactsApiTestMixin(object):
         data = response[1]
         if u"key" in data:
             expected.setdefault(u"key", data[u"key"])
+        if u'created_at' in data:
             expected.setdefault(u"created_at", data[u"created_at"])
         self.assertEqual(response, (200, expected))
         return data
