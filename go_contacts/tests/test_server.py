@@ -309,7 +309,7 @@ class TestContactsApi(VumiTestCase, ContactsApiTestMixin):
 
     def _store(self, api):
         owner = self.OWNER_ID.encode("utf-8")
-        return api.backend.get_contact_collection(owner).contact_store
+        return api.contact_backend.get_contact_collection(owner).contact_store
 
     @inlineCallbacks
     def create_contact(self, api, **contact_data):
@@ -338,8 +338,9 @@ class TestContactsApi(VumiTestCase, ContactsApiTestMixin):
             },
         })
         api = ContactsApi(configfile)
-        self.assertTrue(isinstance(api.backend, RiakContactsBackend))
-        self.assertTrue(isinstance(api.backend.riak_manager, TxRiakManager))
+        self.assertTrue(isinstance(api.contact_backend, RiakContactsBackend))
+        self.assertTrue(isinstance(api.contact_backend.riak_manager,
+                                   TxRiakManager))
 
     def test_init_no_configfile(self):
         err = self.assertRaises(ValueError, ContactsApi)
@@ -357,14 +358,14 @@ class TestContactsApi(VumiTestCase, ContactsApiTestMixin):
     def test_collections(self):
         api = self.mk_api()
         self.assertEqual(api.collections, (
-            ('/contacts', api.backend.get_contact_collection),
+            ('/contacts', api.contact_backend.get_contact_collection),
             ('/groups', api.group_backend.get_group_collection),
         ))
 
     @inlineCallbacks
     def test_route(self):
         api = self.mk_api()
-        collection = api.backend.get_contact_collection(
+        collection = api.contact_backend.get_contact_collection(
             self.OWNER_ID.encode("utf-8"))
         key, data = yield collection.create(None, {
             "msisdn": u"+12345",
@@ -447,7 +448,7 @@ class TestGroupsApi(VumiTestCase, GroupsApiTestMixin):
 
     def _store(self, api):
         owner = self.OWNER_ID.encode("utf-8")
-        return api.backend.get_contact_collection(owner).contact_store
+        return api.group_backend.get_group_collection(owner).contact_store
 
     @inlineCallbacks
     def get_group(self, api, key):
@@ -487,17 +488,3 @@ class TestGroupsApi(VumiTestCase, GroupsApiTestMixin):
         self.assertTrue(isinstance(api.group_backend, RiakGroupsBackend))
         self.assertTrue(isinstance(api.group_backend.riak_manager,
                                    TxRiakManager))
-
-    def test_init_no_riak_config(self):
-        badconfigfile = self.mk_config({})
-        configfile = self.mk_config({
-            "riak_manager": {
-                "bucket_prefix": "test",
-            },
-        })
-        api = ContactsApi(configfile)
-        err = self.assertRaises(ValueError, api._setup_groups_backend,
-                                badconfigfile)
-        self.assertEqual(
-            str(err),
-            "Config file must contain a riak_manager entry.")
