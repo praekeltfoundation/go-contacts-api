@@ -22,7 +22,44 @@ from go_contacts.tests.server_contacts_test_mixin import ContactsApiTestMixin
 from go_api.collections.errors import CollectionObjectNotFound
 
 
-class TestContactsApi(VumiTestCase, ContactsApiTestMixin):
+class TestApiServer(object):
+    def test_init_no_configfile(self):
+        err = self.assertRaises(ValueError, ContactsApi)
+        self.assertEqual(
+            str(err),
+            "Please specify a config file using --appopts=<config.yaml>")
+
+    def test_init_no_riak_config(self):
+        configfile = self.mk_config({})
+        err = self.assertRaises(ValueError, ContactsApi, configfile)
+        self.assertEqual(
+            str(err),
+            "Config file must contain a riak_manager entry.")
+
+    def test_collections(self):
+        api = self.mk_api()
+        self.assertEqual(api.collections, (
+            ('/contacts', api.contact_backend.get_contact_collection),
+            ('/groups', api.group_backend.get_group_collection),
+        ))
+
+    @inlineCallbacks
+    def test_route(self):
+        api = self.mk_api()
+        collection = api.contact_backend.get_contact_collection(
+            self.OWNER_ID.encode("utf-8"))
+        key, data = yield collection.create(None, {
+            "msisdn": u"+12345",
+        })
+        contact = yield collection.contact_store.get_contact_by_key(key)
+        code, data = yield self.request(
+            api, "GET", '/contacts/%s' % (key,))
+        self.assertEqual(code, 200)
+        self.assertEqual(data, contact_to_dict(contact))
+
+
+class TestContactsApi(VumiTestCase, ContactsApiTestMixin,
+                      TestApiServer):
     def setUp(self):
         self.persistence_helper = self.add_helper(
             PersistenceHelper(use_riak=True, is_sync=False))
@@ -87,40 +124,6 @@ class TestContactsApi(VumiTestCase, ContactsApiTestMixin):
         self.assertTrue(isinstance(api.contact_backend, RiakContactsBackend))
         self.assertTrue(isinstance(api.contact_backend.riak_manager,
                                    TxRiakManager))
-
-    def test_init_no_configfile(self):
-        err = self.assertRaises(ValueError, ContactsApi)
-        self.assertEqual(
-            str(err),
-            "Please specify a config file using --appopts=<config.yaml>")
-
-    def test_init_no_riak_config(self):
-        configfile = self.mk_config({})
-        err = self.assertRaises(ValueError, ContactsApi, configfile)
-        self.assertEqual(
-            str(err),
-            "Config file must contain a riak_manager entry.")
-
-    def test_collections(self):
-        api = self.mk_api()
-        self.assertEqual(api.collections, (
-            ('/contacts', api.contact_backend.get_contact_collection),
-            ('/groups', api.group_backend.get_group_collection),
-        ))
-
-    @inlineCallbacks
-    def test_route(self):
-        api = self.mk_api()
-        collection = api.contact_backend.get_contact_collection(
-            self.OWNER_ID.encode("utf-8"))
-        key, data = yield collection.create(None, {
-            "msisdn": u"+12345",
-        })
-        contact = yield collection.contact_store.get_contact_by_key(key)
-        code, data = yield self.request(
-            api, "GET", '/contacts/%s' % (key,))
-        self.assertEqual(code, 200)
-        self.assertEqual(data, contact_to_dict(contact))
 
 
 class TestFakeContactsApi(VumiTestCase, ContactsApiTestMixin):
