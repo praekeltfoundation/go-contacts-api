@@ -237,3 +237,45 @@ class TestGroupsApi(VumiTestCase, GroupsApiTestMixin):
         self.assertTrue(isinstance(api.group_backend, RiakGroupsBackend))
         self.assertTrue(isinstance(api.group_backend.riak_manager,
                                    TxRiakManager))
+
+
+class TestFakeGroupsApi(VumiTestCase, GroupsApiTestMixin):
+    def setUp(self):
+        try:
+            from fake_go_groups import Request, FakeGroupsApi
+        except ImportError as err:
+            if "fake_go_groups" not in err.args[0]:
+                raise
+            raise ImportError(" ".join([
+                err.args[0],
+                "(install from pypi or the 'verified-fake' directory)"]))
+
+        self.req_class = Request
+        self.api_class = FakeGroupsApi
+
+    def mk_api(self):
+        return self.api_class("", "token-1", {})
+
+    def request(self, api, method, path, body=None, headers=None, auth=True):
+        if headers is None:
+            headers = {}
+        if auth:
+            headers["Authorization"] = "Bearer token-1"
+        resp = api.handle_request(self.req_class(
+            method, path, body=body, headers=headers))
+        return resp.code, json.loads(resp.body)
+
+    def create_group(self, api, **group_data):
+        return api.create_group(group_data)
+
+    def get_group(self, api, group_key):
+        return api.get_group(group_key)
+
+    def group_exists(self, api, group_key):
+        from fake_go_groups import FakeGroupsError
+        try:
+            self.get_group(api, group_key)
+        except FakeGroupsError:
+            return False
+        else:
+            return True
