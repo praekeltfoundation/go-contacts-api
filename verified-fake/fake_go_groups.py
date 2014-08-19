@@ -79,14 +79,16 @@ class FakeGroupsApi(object):
                 400, "Invalid group fields: %s" % ", ".join(
                     sorted(bad_fields)))
 
-    def create_group(self, group_data):
+    def _data_to_json(self, group_data):
         if not isinstance(group_data, basestring):
             # If we don't already have JSON, we want to make some to guarantee
             # encoding succeeds.
             group_data = json.dumps(group_data)
-        group_data = json.loads(group_data)
-        self._check_fields(group_data)
+        return json.loads(group_data)
 
+    def create_group(self, group_data):
+        group_data = self._data_to_json(group_data)
+        self._check_fields(group_data)
         group = self.make_group_dict(group_data)
         self.groups_data[group[u"key"]] = group
         return group
@@ -99,15 +101,10 @@ class FakeGroupsApi(object):
         return group
 
     def update_group(self, group_key, group_data):
-        if not isinstance(group_data, basestring):
-            # If we don't already have JSON, we want to make some to guarantee
-            # encoding succeeds.
-            group_data = json.dumps(group_data)
+        group_data = self._data_to_json(group_data)
         group = self.get_group(group_key)
-        update_data = json.loads(group_data)
-        self._check_fields(update_data)
-        for k, v in update_data.iteritems():
-            group[k] = v
+        self._check_fields(group_data)
+        group.update(group_data)
         return group
 
     def delete_group(self, group_key):
@@ -139,7 +136,7 @@ class FakeGroupsApi(object):
             elif request.method == "DELETE":
                 return self.handle_delete_group(group_key, request)
             else:
-                return self.build_response("", 405)
+                raise FakeGroupsError(405, "Method Not Allowed")
 
         except FakeGroupsError as err:
             return self.build_response(err.data, err.code)
