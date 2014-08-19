@@ -46,10 +46,12 @@ class FakeContactsApi(object):
     Fake implementation of the Vumi Go contacts API.
     """
 
-    def __init__(self, url_path_prefix, auth_token, contacts_data):
+    def __init__(self, url_path_prefix, auth_token, contacts_data={},
+                 groups_data={}):
         self.url_path_prefix = url_path_prefix
         self.auth_token = auth_token
         self.contacts_data = contacts_data
+        self.groups_data = groups_data
 
     @staticmethod
     def make_contact_dict(fields):
@@ -81,7 +83,35 @@ class FakeContactsApi(object):
         contact.update(fields)
         return contact
 
-    def _check_fields(self, contact_data):
+    @staticmethod
+    def make_group_dict(fields):
+        group = {
+            # Always generate a key. It can be overridden by `fields`.
+            u'key': uuid4().hex,
+
+            # Some constant-for-our-purposes fields.
+            u'$VERSION': None,
+            u'user_account': u'owner-1',
+            u'created_at': u'2014-07-25 12:44:11.159151',
+
+            # Everything else.
+            u'name': None,
+            u'query': None,
+        }
+        group.update(fields)
+        return group
+
+    def _check_group_fields(self, group_data):
+        allowed_fields = set(self.make_group_dict({}).keys())
+        allowed_fields.discard(u"key")
+
+        bad_fields = set(group_data.keys()) - allowed_fields
+        if bad_fields:
+            raise FakeContactsError(
+                400, "Invalid group fields: %s" % ", ".join(
+                    sorted(bad_fields)))
+
+    def _check_contact_fields(self, contact_data):
         allowed_fields = set(self.make_contact_dict({}).keys())
         allowed_fields.discard(u"key")
 
@@ -91,13 +121,16 @@ class FakeContactsApi(object):
                 400, "Invalid contact fields: %s" % ", ".join(
                     sorted(bad_fields)))
 
-    def create_contact(self, contact_data):
-        if not isinstance(contact_data, basestring):
+    def _data_to_json(self, data):
+        if not isinstance(data, basestring):
             # If we don't already have JSON, we want to make some to guarantee
             # encoding succeeds.
-            contact_data = json.dumps(contact_data)
-        contact_data = json.loads(contact_data)
-        self._check_fields(contact_data)
+            data = json.dumps(data)
+        return json.loads(data)
+
+    def create_contact(self, contact_data):
+        contact_data = self._data_to_json(contact_data)
+        self._check_contact_fields(contact_data)
 
         contact = self.make_contact_dict(contact_data)
         self.contacts_data[contact[u"key"]] = contact
@@ -111,14 +144,10 @@ class FakeContactsApi(object):
         return contact
 
     def update_contact(self, contact_key, contact_data):
-        if not isinstance(contact_data, basestring):
-            # If we don't already have JSON, we want to make some to guarantee
-            # encoding succeeds.
-            contact_data = json.dumps(contact_data)
         contact = self.get_contact(contact_key)
-        update_data = json.loads(contact_data)
-        self._check_fields(update_data)
-        for k, v in update_data.iteritems():
+        contact_data = self._data_to_json(contact_data)
+        self._check_contact_fields(contact_data)
+        for k, v in contact_data.iteritems():
             contact[k] = v
         return contact
 
@@ -127,35 +156,86 @@ class FakeContactsApi(object):
         self.contacts_data.pop(contact_key)
         return contact
 
+    def create_group(self, group_data):
+        group_data = self._data_to_json(group_data)
+        self._check_group_fields(group_data)
+        group = self.make_group_dict(group_data)
+        self.groups_data[group[u"key"]] = group
+        return group
+
+    def get_group(self, group_key):
+        group = self.groups_data.get(group_key)
+        if group is None:
+            raise FakeContactsError(
+                404, u"Group %r not found." % (group_key,))
+        return group
+
+    def update_group(self, group_key, group_data):
+        group_data = self._data_to_json(group_data)
+        group = self.get_group(group_key)
+        self._check_group_fields(group_data)
+        group.update(group_data)
+        return group
+
+    def delete_group(self, group_key):
+        group = self.get_group(group_key)
+        self.groups_data.pop(group_key)
+        return group
+
     # The methods below are part of the external API.
 
     def handle_request(self, request):
         if not self.check_auth(request):
             return self.build_response("", 403)
 
-        prefix = "/".join([self.url_path_prefix.rstrip("/"), "contacts"])
+        request_type = request.path.replace(
+            self.url_path_prefix, '').lstrip('/')
+        request_type = request_type[:request_type.find('/')]
+        prefix = "/".join([self.url_path_prefix.rstrip("/"), request_type])
         contact_key = request.path.replace(prefix, "").lstrip("/")
 
-        try:
-            if not contact_key:
-                if request.method == "POST":
-                    return self.handle_create_contact(request)
+        if request_type == 'contacts':
+            try:
+                if not contact_key:
+                    if request.method == "POST":
+                        return self.handle_create_contact(request)
+                    else:
+                        return self.build_response("", 405)
+
+                if request.method == "GET":
+                    return self.handle_get_contact(contact_key, request)
+                elif request.method == "PUT":
+                    # NOTE: This is an incorrect use of the PUT method, but
+                    # it's what we have for now.
+                    return self.handle_update_contact(contact_key, request)
+                elif request.method == "DELETE":
+                    return self.handle_delete_contact(contact_key, request)
                 else:
                     return self.build_response("", 405)
 
-            if request.method == "GET":
-                return self.handle_get_contact(contact_key, request)
-            elif request.method == "PUT":
-                # NOTE: This is an incorrect use of the PUT method, but it's
-                # what we have for now.
-                return self.handle_update_contact(contact_key, request)
-            elif request.method == "DELETE":
-                return self.handle_delete_contact(contact_key, request)
-            else:
-                return self.build_response("", 405)
+            except FakeContactsError as err:
+                return self.build_response(err.data, err.code)
 
-        except FakeContactsError as err:
-            return self.build_response(err.data, err.code)
+        elif request_type == 'groups':
+            try:
+                if request.method == "POST":
+                    if contact_key is None or contact_key is "":
+                        return self.handle_create_group(request)
+                    else:
+                        raise FakeContactsError(405, "Method Not Allowed")
+                elif request.method == "GET":
+                    return self.handle_get_group(contact_key, request)
+                elif request.method == "PUT":
+                    # NOTE: This is an incorrect use of the PUT method, but
+                    # it's what we have for now.
+                    return self.handle_update_group(contact_key, request)
+                elif request.method == "DELETE":
+                    return self.handle_delete_group(contact_key, request)
+                else:
+                    raise FakeContactsError(405, "Method Not Allowed")
+
+            except FakeContactsError as err:
+                return self.build_response(err.data, err.code)
 
     def check_auth(self, request):
         auth_header = request.headers.get("Authorization")
@@ -179,3 +259,20 @@ class FakeContactsApi(object):
     def handle_delete_contact(self, contact_key, request):
         contact = self.delete_contact(contact_key)
         return self.build_response(contact)
+
+    def handle_create_group(self, request):
+        group = self.create_group(request.body)
+        return self.build_response(group)
+
+    def handle_get_group(self, group_key, request):
+        group = self.get_group(group_key)
+        return self.build_response(group)
+
+    def handle_update_group(self, group_key, request):
+        group = self.update_group(group_key, request.body)
+        return self.build_response(group)
+
+    def handle_delete_group(self, group_key, request):
+        group = self.delete_group(group_key)
+        return self.build_response(group)
+

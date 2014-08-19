@@ -242,19 +242,19 @@ class TestGroupsApi(VumiTestCase, GroupsApiTestMixin):
 class TestFakeGroupsApi(VumiTestCase, GroupsApiTestMixin):
     def setUp(self):
         try:
-            from fake_go_groups import Request, FakeGroupsApi
+            from fake_go_contacts import Request, FakeContactsApi
         except ImportError as err:
-            if "fake_go_groups" not in err.args[0]:
+            if "fake_go_contacts" not in err.args[0]:
                 raise
             raise ImportError(" ".join([
                 err.args[0],
                 "(install from pypi or the 'verified-fake' directory)"]))
 
         self.req_class = Request
-        self.api_class = FakeGroupsApi
+        self.api_class = FakeContactsApi
 
     def mk_api(self):
-        return self.api_class("", "token-1", {})
+        return self.api_class("", "token-1")
 
     def request(self, api, method, path, body=None, headers=None, auth=True):
         if headers is None:
@@ -272,10 +272,10 @@ class TestFakeGroupsApi(VumiTestCase, GroupsApiTestMixin):
         return api.get_group(group_key)
 
     def group_exists(self, api, group_key):
-        from fake_go_groups import FakeGroupsError
+        from fake_go_contacts import FakeContactsError
         try:
             self.get_group(api, group_key)
-        except FakeGroupsError:
+        except FakeContactsError:
             return False
         else:
             return True
