@@ -255,19 +255,18 @@ class FakeContactsApi(object):
         prefix = "/".join([self.url_path_prefix.rstrip("/"), request_type])
         contact_key = request.path.replace(prefix, "").lstrip("/")
 
-        if request_type == 'contacts':
-            try:
-                return self.build_response(
-                    self.contacts.request(request, contact_key))
-            except FakeContactsError as err:
-                return self.build_response(err.data, err.code)
+        handler = {
+            'contacts': self.contacts,
+            'groups': self.groups,
+        }.get(request_type, None)
 
-        elif request_type == 'groups':
-            try:
-                return self.build_response(
-                    self.groups.request(request, contact_key))
-            except FakeContactsError as err:
-                return self.build_response(err.data, err.code)
+        if handler is None:
+            self.build_response("", 404)
+
+        try:
+            return self.build_response(handler.request(request, contact_key))
+        except FakeContactsError as err:
+            return self.build_response(err.data, err.code)
 
     def check_auth(self, request):
         auth_header = request.headers.get("Authorization")
