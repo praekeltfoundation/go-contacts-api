@@ -86,8 +86,7 @@ class FakeContacts(object):
         contact.update(fields)
         return contact
 
-    @staticmethod
-    def _check_contact_fields(contact_data):
+    def _check_fields(contact_data):
         allowed_fields = set(FakeContacts.make_contact_dict({}).keys())
         allowed_fields.discard(u"key")
 
@@ -99,7 +98,7 @@ class FakeContacts(object):
 
     def create_contact(self, contact_data):
         contact_data = _data_to_json(contact_data)
-        self._check_contact_fields(contact_data)
+        self._check_fields(contact_data)
 
         contact = self.make_contact_dict(contact_data)
         self.contacts_data[contact[u"key"]] = contact
@@ -115,7 +114,7 @@ class FakeContacts(object):
     def update_contact(self, contact_key, contact_data):
         contact = self.get_contact(contact_key)
         contact_data = _data_to_json(contact_data)
-        self._check_contact_fields(contact_data)
+        self._check_fields(contact_data)
         for k, v in contact_data.iteritems():
             contact[k] = v
         return contact
@@ -168,16 +167,7 @@ class FakeGroups(object):
         group.update(fields)
         return group
 
-    @staticmethod
-    def _data_to_json(data):
-        if not isinstance(data, basestring):
-            # If we don't already have JSON, we want to make some to guarantee
-            # encoding succeeds.
-            data = json.dumps(data)
-        return json.loads(data)
-
-    @staticmethod
-    def _check_group_fields(group_data):
+    def _check_fields(group_data):
         allowed_fields = set(FakeGroups.make_group_dict({}).keys())
         allowed_fields.discard(u"key")
 
@@ -189,7 +179,7 @@ class FakeGroups(object):
 
     def create_group(self, group_data):
         group_data = _data_to_json(group_data)
-        self._check_group_fields(group_data)
+        self._check_fields(group_data)
         group = self.make_group_dict(group_data)
         self.groups_data[group[u"key"]] = group
         return group
@@ -204,7 +194,7 @@ class FakeGroups(object):
     def update_group(self, group_key, group_data):
         group_data = _data_to_json(group_data)
         group = self.get_group(group_key)
-        self._check_group_fields(group_data)
+        self._check_fields(group_data)
         group.update(group_data)
         return group
 
@@ -235,13 +225,15 @@ class FakeContactsApi(object):
     """
     Fake implementation of the Vumi Go contacts API.
     """
-
     def __init__(self, url_path_prefix, auth_token, contacts_data={},
                  groups_data={}):
         self.url_path_prefix = url_path_prefix
         self.auth_token = auth_token
         self.contacts = FakeContacts(contacts_data)
         self.groups = FakeGroups(groups_data)
+
+    make_contact_dict = staticmethod(FakeContacts.make_contact_dict)
+    make_group_dict = staticmethod(FakeGroups.make_group_dict)
 
     # The methods below are part of the external API.
 
