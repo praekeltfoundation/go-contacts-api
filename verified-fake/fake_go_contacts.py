@@ -78,8 +78,9 @@ class FakeContacts(object):
         contact.update(fields)
         return contact
 
-    def _check_contact_fields(self, contact_data):
-        allowed_fields = set(self.make_contact_dict({}).keys())
+    @staticmethod
+    def _check_contact_fields(contact_data):
+        allowed_fields = set(FakeContacts.make_contact_dict({}).keys())
         allowed_fields.discard(u"key")
 
         bad_fields = set(contact_data.keys()) - allowed_fields
@@ -88,7 +89,8 @@ class FakeContacts(object):
                 400, "Invalid contact fields: %s" % ", ".join(
                     sorted(bad_fields)))
 
-    def _data_to_json(self, data):
+    @staticmethod
+    def _data_to_json(data):
         if not isinstance(data, basestring):
             # If we don't already have JSON, we want to make some to guarantee
             # encoding succeeds.
@@ -166,15 +168,17 @@ class FakeGroups(object):
         group.update(fields)
         return group
 
-    def _data_to_json(self, data):
+    @staticmethod
+    def _data_to_json(data):
         if not isinstance(data, basestring):
             # If we don't already have JSON, we want to make some to guarantee
             # encoding succeeds.
             data = json.dumps(data)
         return json.loads(data)
 
-    def _check_group_fields(self, group_data):
-        allowed_fields = set(self.make_group_dict({}).keys())
+    @staticmethod
+    def _check_group_fields(group_data):
+        allowed_fields = set(FakeGroups.make_group_dict({}).keys())
         allowed_fields.discard(u"key")
 
         bad_fields = set(group_data.keys()) - allowed_fields
@@ -236,8 +240,6 @@ class FakeContactsApi(object):
                  groups_data={}):
         self.url_path_prefix = url_path_prefix
         self.auth_token = auth_token
-        self.contacts_data = contacts_data
-        self.groups_data = groups_data
         self.contacts = FakeContacts(contacts_data)
         self.groups = FakeGroups(groups_data)
 
