@@ -227,7 +227,7 @@ class FakeGroups(object):
             raise FakeContactsError(405, "Method Not Allowed")
 
 
-class FakeContactsApi(FakeContacts, FakeGroups):
+class FakeContactsApi(object):
     """
     Fake implementation of the Vumi Go contacts API.
     """
