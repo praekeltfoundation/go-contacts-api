@@ -87,7 +87,7 @@ class FakeContacts(object):
         return contact
 
     def _check_fields(self, contact_data):
-        allowed_fields = set(FakeContacts.make_contact_dict({}).keys())
+        allowed_fields = set(self.make_contact_dict({}).keys())
         allowed_fields.discard(u"key")
 
         bad_fields = set(contact_data.keys()) - allowed_fields
@@ -168,7 +168,7 @@ class FakeGroups(object):
         return group
 
     def _check_fields(self, group_data):
-        allowed_fields = set(FakeGroups.make_group_dict({}).keys())
+        allowed_fields = set(self.make_group_dict({}).keys())
         allowed_fields.discard(u"key")
 
         bad_fields = set(group_data.keys()) - allowed_fields
