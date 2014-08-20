@@ -41,6 +41,14 @@ class FakeContactsError(Exception):
         }
 
 
+def _data_to_json(data):
+    if not isinstance(data, basestring):
+        # If we don't already have JSON, we want to make some to guarantee
+        # encoding succeeds.
+        data = json.dumps(data)
+    return json.loads(data)
+
+
 class FakeContacts(object):
     """
     Fake implementation of the Contacts part of the Contacts API
@@ -89,16 +97,8 @@ class FakeContacts(object):
                 400, "Invalid contact fields: %s" % ", ".join(
                     sorted(bad_fields)))
 
-    @staticmethod
-    def _data_to_json(data):
-        if not isinstance(data, basestring):
-            # If we don't already have JSON, we want to make some to guarantee
-            # encoding succeeds.
-            data = json.dumps(data)
-        return json.loads(data)
-
     def create_contact(self, contact_data):
-        contact_data = self._data_to_json(contact_data)
+        contact_data = _data_to_json(contact_data)
         self._check_contact_fields(contact_data)
 
         contact = self.make_contact_dict(contact_data)
@@ -114,7 +114,7 @@ class FakeContacts(object):
 
     def update_contact(self, contact_key, contact_data):
         contact = self.get_contact(contact_key)
-        contact_data = self._data_to_json(contact_data)
+        contact_data = _data_to_json(contact_data)
         self._check_contact_fields(contact_data)
         for k, v in contact_data.iteritems():
             contact[k] = v
@@ -188,7 +188,7 @@ class FakeGroups(object):
                     sorted(bad_fields)))
 
     def create_group(self, group_data):
-        group_data = self._data_to_json(group_data)
+        group_data = _data_to_json(group_data)
         self._check_group_fields(group_data)
         group = self.make_group_dict(group_data)
         self.groups_data[group[u"key"]] = group
@@ -202,7 +202,7 @@ class FakeGroups(object):
         return group
 
     def update_group(self, group_key, group_data):
-        group_data = self._data_to_json(group_data)
+        group_data = _data_to_json(group_data)
         group = self.get_group(group_key)
         self._check_group_fields(group_data)
         group.update(group_data)
