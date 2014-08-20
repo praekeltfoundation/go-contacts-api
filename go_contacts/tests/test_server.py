@@ -153,10 +153,10 @@ class TestFakeContactsApi(VumiTestCase, ContactsApiTestMixin):
         return resp.code, json.loads(resp.body)
 
     def create_contact(self, api, **contact_data):
-        return api.create_contact(contact_data)
+        return api.contacts.create_contact(contact_data)
 
     def get_contact(self, api, contact_key):
-        return api.get_contact(contact_key)
+        return api.contacts.get_contact(contact_key)
 
     def contact_exists(self, api, contact_key):
         from fake_go_contacts import FakeContactsError
@@ -266,10 +266,10 @@ class TestFakeGroupsApi(VumiTestCase, GroupsApiTestMixin):
         return resp.code, json.loads(resp.body)
 
     def create_group(self, api, **group_data):
-        return api.create_group(group_data)
+        return api.groups.create_group(group_data)
 
     def get_group(self, api, group_key):
-        return api.get_group(group_key)
+        return api.groups.get_group(group_key)
 
     def group_exists(self, api, group_key):
         from fake_go_contacts import FakeContactsError
