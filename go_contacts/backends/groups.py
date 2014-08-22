@@ -79,13 +79,15 @@ class RiakGroupsCollection(object):
         """
         raise NotImplementedError()
 
+    @inlineCallbacks
     def all(self):
         """
         Return an iterable over all objects in the collection. The iterable may
         contain deferreds instead of objects. May return a deferred instead of
         the iterable.
         """
-        raise NotImplementedError()
+        group_list = yield self.contact_store.list_groups()
+        returnValue([map(group_to_dict, group_list)])
 
     @inlineCallbacks
     def get(self, object_id):

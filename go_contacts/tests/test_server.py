@@ -254,7 +254,7 @@ class TestFakeGroupsApi(VumiTestCase, GroupsApiTestMixin):
         self.api_class = FakeContactsApi
 
     def mk_api(self):
-        return self.api_class("", "token-1")
+        return self.api_class("", "token-1", {}, {})
 
     def request(self, api, method, path, body=None, headers=None, auth=True):
         if headers is None:

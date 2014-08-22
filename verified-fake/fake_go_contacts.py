@@ -191,6 +191,12 @@ class FakeGroups(object):
                 404, u"Group %r not found." % (group_key,))
         return group
 
+    def get_all_groups(self):
+        groups = []
+        for key, value in self.groups_data.iteritems():
+            groups.append(value)
+        return groups
+
     def update_group(self, group_key, group_data):
         group_data = _data_to_json(group_data)
         group = self.get_group(group_key)
@@ -210,7 +216,10 @@ class FakeGroups(object):
             else:
                 raise FakeContactsError(405, "Method Not Allowed")
         elif request.method == "GET":
-            return self.get_group(contact_key)
+            if contact_key is None or contact_key is "":
+                return self.get_all_groups()
+            else:
+                return self.get_group(contact_key)
         elif request.method == "PUT":
             # NOTE: This is an incorrect use of the PUT method, but
             # it's what we have for now.

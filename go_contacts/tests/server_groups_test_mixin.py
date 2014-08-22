@@ -192,3 +192,19 @@ class GroupsApiTestMixin(object):
             u'reason': u"Group 'bad-id' not found.",
             u'status_code': 404,
             })
+
+    @inlineCallbacks
+    def test_get_all_groups(self):
+        api = self.mk_api()
+        (code, data) = yield self.request(api, 'GET', '/groups/')
+        self.assertEqual(code, 200)
+        self.assertEqual(data, [])
+        group1 = yield self.create_group(api, name=u'Bob')
+        group2 = yield self.create_group(api, name=u'Susan')
+        group_smart = yield self.create_group(api, name=u'Smart',
+                                              query=u'test_query')
+        (code, data) = yield self.request(api, 'GET', '/groups/')
+        self.assertEqual(code, 200)
+        self.assertTrue(group1 in data)
+        self.assertTrue(group2 in data)
+        self.assertTrue(group_smart in data)
