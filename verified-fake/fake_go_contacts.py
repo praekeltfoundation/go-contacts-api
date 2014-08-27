@@ -234,7 +234,7 @@ class FakeGroups(object):
                 if query.get('stream', None) == ['true']:
                     return self.get_all_groups(query.get('query', None))
                 else:
-                    return self.get_page_groups(query.get('query', None), 
+                    return self.get_page_groups(query.get('query', None),
                                                 query.get('cursor', 0),
                                                 query.get('max_items', None))
             else:

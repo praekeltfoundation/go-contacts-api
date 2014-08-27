@@ -33,17 +33,19 @@ def contact_to_dict(contact):
 
 
 class RiakContactsBackend(object):
-    def __init__(self, riak_manager):
+    def __init__(self, riak_manager, max_contacts_per_page):
         self.riak_manager = riak_manager
+        self.max_contacts_per_page = max_contacts_per_page
 
     def get_contact_collection(self, owner_id):
         contact_store = ContactStore(self.riak_manager, owner_id)
-        return RiakContactsCollection(contact_store)
+        return RiakContactsCollection(
+            contact_store, self.max_contacts_per_page)
 
 
 @implementer(ICollection)
 class RiakContactsCollection(object):
-    def __init__(self, contact_store):
+    def __init__(self, contact_store, max_contacts_per_page):
         self.contact_store = contact_store
 
     @staticmethod

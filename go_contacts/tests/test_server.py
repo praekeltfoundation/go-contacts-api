@@ -36,6 +36,30 @@ class TestApiServer(object):
             str(err),
             "Config file must contain a riak_manager entry.")
 
+    def test_init_no_contact_limit(self):
+        configfile = self.mk_config({
+            "riak_manager": {
+                "bucket_prefix": "test",
+            },
+            "max_groups_per_page": 10,
+        })
+        err = self.assertRaises(ValueError, ContactsApi, configfile)
+        self.assertEqual(
+            str(err),
+            "Config file must contain the limit max_contacts_per_page")
+
+    def test_init_no_group_limit(self):
+        configfile = self.mk_config({
+            "riak_manager": {
+                "bucket_prefix": "test",
+            },
+            "max_contacts_per_page": 10,
+        })
+        err = self.assertRaises(ValueError, ContactsApi, configfile)
+        self.assertEqual(
+            str(err),
+            "Config file must contain the limit max_groups_per_page")
+
     def test_collections(self):
         api = self.mk_api()
         self.assertEqual(api.collections, (
