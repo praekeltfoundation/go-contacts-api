@@ -82,16 +82,6 @@ class RiakGroupsCollection(object):
         raise NotImplementedError()
 
     @inlineCallbacks
-    def all(self):
-        """
-        Return an iterable over all objects in the collection. The iterable may
-        contain deferreds instead of objects. May return a deferred instead of
-        the iterable.
-        """
-        group_list = yield self.contact_store.list_groups()
-        returnValue([map(group_to_dict, group_list)])
-
-    @inlineCallbacks
     def stream(self, query):
         """
         Return an iterable over all objects in the collection. The iterable may
@@ -147,9 +137,14 @@ class RiakGroupsCollection(object):
         if cursor_index < 0:
             raise CollectionUsageError("Cursor not found")
 
-        group_list = map(group_to_dict,
-                         group_list[cursor_index:max_results + cursor_index])
-        returnValue((cursor, group_list))
+        next_index = cursor_index + max_results
+        if next_index >= len(group_list):
+            next_cursor = None
+        else:
+            next_cursor = group_list[next_index].key
+
+        group_list = map(group_to_dict, group_list[cursor_index:next_index])
+        returnValue((next_cursor, group_list))
 
     @inlineCallbacks
     def get(self, object_id):

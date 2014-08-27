@@ -147,8 +147,9 @@ class FakeGroups(object):
     """
     Fake implementation of the Groups part of the Contacts API
     """
-    def __init__(self, groups_data={}):
+    def __init__(self, groups_data={}, max_groups_per_page=10):
         self.groups_data = groups_data
+        self.max_groups_per_page = max_groups_per_page
 
     @staticmethod
     def make_group_dict(fields):
@@ -200,16 +201,25 @@ class FakeGroups(object):
             groups.append(value)
         return groups
 
-    def get_page_groups(self, query, cursor, max_items):
+    def get_page_groups(self, query, cursor, max_results):
         groups = self.get_all_groups(query)
-        groups.sort(key=lambda group: group[u'id'])
         if len(groups) <= 0:
-            return (None, [])
-        cursor = cursor or groups[0]['id']
-        index = [y[u'id'] for y in groups].index(cursor)
-        next_index = index + max_items
+            return {u'cursor': None, u'data': []}
+        groups.sort(key=lambda group: group.get('key'))
+
+        cursor = cursor or groups[0].get('key')
+        index = [y.get('key') for y in groups].index(cursor)
+
+        max_results = (max_results and int(max_results)) or float('inf')
+        max_results = min(max_results, self.max_groups_per_page)
+
+        next_index = index + max_results
+        if next_index >= len(groups):
+            next_cursor = None
+        else:
+            next_cursor = groups[next_index].get('key')
         groups = groups[index:next_index]
-        return (cursor, groups)
+        return {u'cursor': next_cursor, u'data': groups}
 
     def update_group(self, group_key, group_data):
         group_data = _data_to_json(group_data)
@@ -231,12 +241,18 @@ class FakeGroups(object):
                 raise FakeContactsError(405, "Method Not Allowed")
         elif request.method == "GET":
             if contact_key is None or contact_key == "":
-                if query.get('stream', None) == ['true']:
-                    return self.get_all_groups(query.get('query', None))
+                stream = query.get('stream', None)
+                stream = stream and stream[0]
+                q = query.get('query', None)
+                q = q and q[0]
+                if stream == 'true':
+                    return self.get_all_groups(q)
                 else:
-                    return self.get_page_groups(query.get('query', None),
-                                                query.get('cursor', 0),
-                                                query.get('max_items', None))
+                    cursor = query.get('cursor', None)
+                    cursor = cursor and cursor[0]
+                    max_results = query.get('max_results', None)
+                    max_results = max_results and max_results[0]
+                    return self.get_page_groups(q, cursor, max_results)
             else:
                 return self.get_group(contact_key)
         elif request.method == "PUT":

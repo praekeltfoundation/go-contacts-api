@@ -213,3 +213,26 @@ class GroupsApiTestMixin(object):
     def test_get_group_page(self):
         api = self.mk_api()
         (code, data) = yield self.request(api, 'GET', '/groups/')
+        self.assertEqual(code, 200)
+        self.assertEqual(data, {'cursor': None, 'data': []})
+
+        group1 = yield self.create_group(api, name=u'Bob')
+        group2 = yield self.create_group(api, name=u'Susan')
+        group_smart = yield self.create_group(api, name=u'Smart',
+                                              query=u'test_query')
+
+        (code, data) = yield self.request(api, 'GET', '/groups/?max_results=2')
+        self.assertEqual(code, 200)
+        cursor = data[u'cursor']
+        groups = data[u'data']
+
+        (code, data) = yield self.request(
+            api, 'GET',
+            '/groups/?max_results=2&cursor=%s' % cursor.encode('ascii'))
+        self.assertEqual(code, 200)
+        self.assertEqual(data[u'cursor'], None)
+        groups += data[u'data']
+
+        self.assertTrue(group1 in groups)
+        self.assertTrue(group2 in groups)
+        self.assertTrue(group_smart in groups)
