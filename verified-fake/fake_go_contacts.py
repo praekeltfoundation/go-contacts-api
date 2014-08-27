@@ -1,5 +1,6 @@
 import json
 from uuid import uuid4
+from urlparse import (urlparse, parse_qs)
 
 
 class Request(object):
@@ -124,7 +125,7 @@ class FakeContacts(object):
         self.contacts_data.pop(contact_key)
         return contact
 
-    def request(self, request, contact_key):
+    def request(self, request, contact_key, query):
         if not contact_key:
             if request.method == "POST":
                 return self.create_contact(request.body)
@@ -191,11 +192,24 @@ class FakeGroups(object):
                 404, u"Group %r not found." % (group_key,))
         return group
 
-    def get_all_groups(self):
+    def get_all_groups(self, query):
+        if query is not None:
+            raise FakeContactsError(400, "query not allowed")
         groups = []
         for key, value in self.groups_data.iteritems():
             groups.append(value)
         return groups
+
+    def get_page_groups(self, query, cursor, max_items):
+        groups = self.get_all_groups(query)
+        groups.sort(key=lambda group: group[u'id'])
+        if len(groups) <= 0:
+            return (None, [])
+        cursor = cursor or groups[0]['id']
+        index = [y[u'id'] for y in groups].index(cursor)
+        next_index = index + max_items
+        groups = groups[index:next_index]
+        return (cursor, groups)
 
     def update_group(self, group_key, group_data):
         group_data = _data_to_json(group_data)
@@ -209,15 +223,20 @@ class FakeGroups(object):
         self.groups_data.pop(group_key)
         return group
 
-    def request(self, request, contact_key):
+    def request(self, request, contact_key, query):
         if request.method == "POST":
             if contact_key is None or contact_key is "":
                 return self.create_group(request.body)
             else:
                 raise FakeContactsError(405, "Method Not Allowed")
         elif request.method == "GET":
-            if contact_key is None or contact_key is "":
-                return self.get_all_groups()
+            if contact_key is None or contact_key == "":
+                if query.get('stream', None) == ['true']:
+                    return self.get_all_groups(query.get('query', None))
+                else:
+                    return self.get_page_groups(query.get('query', None), 
+                                                query.get('cursor', 0),
+                                                query.get('max_items', None))
             else:
                 return self.get_group(contact_key)
         elif request.method == "PUT":
@@ -250,6 +269,8 @@ class FakeContactsApi(object):
         if not self.check_auth(request):
             return self.build_response("", 403)
 
+        url = urlparse(request.path)
+        request.path = url.path
         request_type = request.path.replace(
             self.url_path_prefix, '').lstrip('/')
         request_type = request_type[:request_type.find('/')]
@@ -265,7 +286,8 @@ class FakeContactsApi(object):
             self.build_response("", 404)
 
         try:
-            return self.build_response(handler.request(request, contact_key))
+            return self.build_response(handler.request(request, contact_key,
+                                       parse_qs(url.query)))
         except FakeContactsError as err:
             return self.build_response(err.data, err.code)
 

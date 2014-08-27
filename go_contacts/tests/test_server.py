@@ -75,6 +75,8 @@ class TestContactsApi(VumiTestCase, ContactsApiTestMixin,
             "riak_manager": {
                 "bucket_prefix": "test",
             },
+            "max_contacts_per_page": 10,
+            "max_groups_per_page": 10,
         })
         return ContactsApi(configfile)
 
@@ -119,6 +121,8 @@ class TestContactsApi(VumiTestCase, ContactsApiTestMixin,
             "riak_manager": {
                 "bucket_prefix": "test",
             },
+            "max_groups_per_page": 10,
+            "max_contacts_per_page": 10,
         })
         api = ContactsApi(configfile)
         self.assertTrue(isinstance(api.contact_backend, RiakContactsBackend))
@@ -184,6 +188,8 @@ class TestGroupsApi(VumiTestCase, GroupsApiTestMixin):
             "riak_manager": {
                 "bucket_prefix": "test",
             },
+            "max_contacts_per_page": 10,
+            "max_groups_per_page": 10,
         })
         return ContactsApi(configfile)
 
@@ -232,6 +238,8 @@ class TestGroupsApi(VumiTestCase, GroupsApiTestMixin):
             "riak_manager": {
                 "bucket_prefix": "test",
             },
+            "max_contacts_per_page": 10,
+            "max_groups_per_page": 10,
         })
         api = ContactsApi(configfile)
         self.assertTrue(isinstance(api.group_backend, RiakGroupsBackend))
