@@ -15,6 +15,8 @@ from go_api.collections.errors import (
 
 from go_contacts.backends.riak import RiakContactsCollection
 
+import codecs
+
 
 def group_to_dict(group):
     """
@@ -133,7 +135,7 @@ class RiakGroupsCollection(object):
 
         group_list.sort(key=lambda group: group.key)
 
-        cursor = cursor or group_list[0].key
+        cursor = cursor and codecs.encode(cursor, 'rot13') or group_list[0].key
         try:
             cursor_index = [y.key for y in group_list].index(cursor)
         except ValueError:
@@ -143,7 +145,7 @@ class RiakGroupsCollection(object):
         if next_index >= len(group_list):
             next_cursor = None
         else:
-            next_cursor = group_list[next_index].key
+            next_cursor = codecs.encode(group_list[next_index].key, 'rot13')
 
         group_list = map(group_to_dict, group_list[cursor_index:next_index])
         returnValue((next_cursor, group_list))

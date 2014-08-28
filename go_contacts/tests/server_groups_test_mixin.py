@@ -3,6 +3,7 @@ Tests for groups API cyclone server.
 """
 from twisted.internet.defer import inlineCallbacks
 import json
+import codecs
 
 
 class GroupsApiTestMixin(object):
@@ -330,3 +331,17 @@ class GroupsApiTestMixin(object):
             yield self.create_group(api, name=u'%s' % str(i)*5)
         (code, data) = yield self.request(api, 'GET', '/groups/')
         self.assertEqual(len(data.get(u'data')), 5)
+
+    @inlineCallbacks
+    def test_page_cursor_encoding(self):
+        """
+        The cursor should be the ROT13 encoding of the next group's key.
+        """
+        api = self.mk_api()
+        keys = []
+        for i in range(3):
+            group = yield self.create_group(api, name=u'%s' % str(i)*5)
+            keys.append(group.get('key'))
+        keys.sort()
+        (code, data) = yield self.request(api, 'GET', '/groups/?max_results=2')
+        self.assertEqual(data.get('cursor'), codecs.encode(keys[2], 'rot13'))

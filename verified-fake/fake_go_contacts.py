@@ -1,6 +1,7 @@
 import json
 from uuid import uuid4
 from urlparse import urlparse, parse_qs
+import codecs
 
 
 class Request(object):
@@ -208,7 +209,8 @@ class FakeGroups(object):
             return {u'cursor': None, u'data': []}
         groups.sort(key=lambda group: group.get('key'))
 
-        cursor = cursor or groups[0].get('key')
+        cursor = cursor and codecs.encode(cursor, 'rot13') or\
+            groups[0].get('key')
         try:
             index = [y.get('key') for y in groups].index(cursor)
         except ValueError:
@@ -221,7 +223,7 @@ class FakeGroups(object):
         if next_index >= len(groups):
             next_cursor = None
         else:
-            next_cursor = groups[next_index].get('key')
+            next_cursor = codecs.encode(groups[next_index].get('key'), 'rot13')
         groups = groups[index:next_index]
         return {u'cursor': next_cursor, u'data': groups}
 
