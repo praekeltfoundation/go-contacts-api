@@ -1,6 +1,6 @@
 import json
 from uuid import uuid4
-from urlparse import (urlparse, parse_qs)
+from urlparse import urlparse, parse_qs
 
 
 class Request(object):
