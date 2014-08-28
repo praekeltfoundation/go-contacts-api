@@ -247,6 +247,23 @@ class GroupsApiTestMixin(object):
         self.assertTrue(group_smart in groups)
 
     @inlineCallbacks
+    def test_get_group_page_single(self):
+        api = self.mk_api()
+
+        group = yield self.create_group(api, name=u'Bob')
+        group_smart = yield self.create_group(api, name=u'Smart',
+                                              query=u'test_query')
+
+        (code, data) = yield self.request(api, 'GET', '/groups/?max_results=2')
+        self.assertEqual(code, 200)
+        cursor = data[u'cursor']
+        groups = data[u'data']
+        self.assertEqual(len(groups), 2)
+        self.assertEqual(cursor, None)
+        self.assertTrue(group in groups)
+        self.assertTrue(group_smart in groups)
+
+    @inlineCallbacks
     def test_page_default_limit(self):
         """
         For this test, the default limit per page is set to 5. If the user
