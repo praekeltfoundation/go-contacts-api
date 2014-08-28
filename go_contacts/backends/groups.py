@@ -133,8 +133,9 @@ class RiakGroupsCollection(object):
         group_list.sort(key=lambda group: group.key)
 
         cursor = cursor or group_list[0].key
-        cursor_index = [y.key for y in group_list].index(cursor)
-        if cursor_index < 0:
+        try:
+            cursor_index = [y.key for y in group_list].index(cursor)
+        except ValueError:
             raise CollectionUsageError("Cursor not found")
 
         next_index = cursor_index + max_results

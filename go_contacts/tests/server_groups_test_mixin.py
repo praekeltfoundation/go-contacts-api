@@ -254,3 +254,17 @@ class GroupsApiTestMixin(object):
             api, 'GET', '/groups/?max_results=10')
         self.assertEqual(code, 200)
         self.assertEqual(len(data.get('data')), 5)
+
+    @inlineCallbacks
+    def test_page_bad_cursor(self):
+        """
+        If the user requests a cursor that doesn't exists,
+        `groups/?cursor=bad-id`, then a CollectionUsageError should be thrown
+        """
+        api = self.mk_api()
+        group = yield self.create_group(api, name=u'Groups 1')
+
+        (code, data) = yield self.request(api, 'GET', '/groups/?cursor=bad-id')
+        self.assertEqual(code, 400)
+        self.assertEqual(data.get(u'status_code'), 400)
+        self.assertEqual(data.get(u'reason'), u'Cursor not found')

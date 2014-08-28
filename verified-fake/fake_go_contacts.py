@@ -209,7 +209,10 @@ class FakeGroups(object):
         groups.sort(key=lambda group: group.get('key'))
 
         cursor = cursor or groups[0].get('key')
-        index = [y.get('key') for y in groups].index(cursor)
+        try:
+            index = [y.get('key') for y in groups].index(cursor)
+        except ValueError:
+            raise FakeContactsError(400, "Cursor not found")
 
         max_results = (max_results and int(max_results)) or float('inf')
         max_results = min(max_results, self.max_groups_per_page)
