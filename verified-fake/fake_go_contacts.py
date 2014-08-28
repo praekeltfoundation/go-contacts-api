@@ -239,6 +239,20 @@ class FakeGroups(object):
         self.groups_data.pop(group_key)
         return group
 
+    def get_all(self, query):
+        stream = query.get('stream', None)
+        stream = stream and stream[0]
+        q = query.get('query', None)
+        q = q and q[0]
+        if stream == 'true':
+            return self.get_all_groups(q)
+        else:
+            cursor = query.get('cursor', None)
+            cursor = cursor and cursor[0]
+            max_results = query.get('max_results', None)
+            max_results = max_results and max_results[0]
+            return self.get_page_groups(q, cursor, max_results)
+
     def request(self, request, contact_key, query):
         if request.method == "POST":
             if contact_key is None or contact_key is "":
@@ -247,18 +261,7 @@ class FakeGroups(object):
                 raise FakeContactsError(405, "Method Not Allowed")
         elif request.method == "GET":
             if contact_key is None or contact_key == "":
-                stream = query.get('stream', None)
-                stream = stream and stream[0]
-                q = query.get('query', None)
-                q = q and q[0]
-                if stream == 'true':
-                    return self.get_all_groups(q)
-                else:
-                    cursor = query.get('cursor', None)
-                    cursor = cursor and cursor[0]
-                    max_results = query.get('max_results', None)
-                    max_results = max_results and max_results[0]
-                    return self.get_page_groups(q, cursor, max_results)
+                return self.get_all(query)
             else:
                 return self.get_group(contact_key)
         elif request.method == "PUT":
