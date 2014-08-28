@@ -54,8 +54,9 @@ class FakeContacts(object):
     """
     Fake implementation of the Contacts part of the Contacts API
     """
-    def __init__(self, contacts_data={}):
+    def __init__(self, contacts_data={}, max_contacts_per_page=10):
         self.contacts_data = contacts_data
+        self.max_contacts_per_page = max_contacts_per_page
 
     @staticmethod
     def make_contact_dict(fields):
@@ -270,11 +271,11 @@ class FakeContactsApi(object):
     Fake implementation of the Vumi Go contacts API.
     """
     def __init__(self, url_path_prefix, auth_token, contacts_data={},
-                 groups_data={}):
+                 groups_data={}, group_limit=10, contacts_limit=10):
         self.url_path_prefix = url_path_prefix
         self.auth_token = auth_token
-        self.contacts = FakeContacts(contacts_data)
-        self.groups = FakeGroups(groups_data)
+        self.contacts = FakeContacts(contacts_data, contacts_limit)
+        self.groups = FakeGroups(groups_data, group_limit)
 
     make_contact_dict = staticmethod(FakeContacts.make_contact_dict)
     make_group_dict = staticmethod(FakeGroups.make_group_dict)
