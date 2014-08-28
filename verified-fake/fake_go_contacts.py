@@ -196,7 +196,7 @@ class FakeGroups(object):
 
     def get_all_groups(self, query):
         if query is not None:
-            raise FakeContactsError(400, "query not allowed")
+            raise FakeContactsError(400, "query parameter not supported")
         groups = []
         for key, value in self.groups_data.iteritems():
             groups.append(value)

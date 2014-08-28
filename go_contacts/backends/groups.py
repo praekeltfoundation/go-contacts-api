@@ -120,9 +120,10 @@ class RiakGroupsCollection(object):
             list of all the objects within the page.
         :rtype: tuple
         """
+        # TODO: Use riak pagination instead of fake pagination
         if query is not None:
             raise CollectionUsageError("query parameter not supported")
-        # TODO: Use riak pagination instead of fake pagination
+
         max_results = max_results or float('inf')
         max_results = min(max_results, self.max_groups_per_page)
 

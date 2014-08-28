@@ -268,3 +268,28 @@ class GroupsApiTestMixin(object):
         self.assertEqual(code, 400)
         self.assertEqual(data.get(u'status_code'), 400)
         self.assertEqual(data.get(u'reason'), u'Cursor not found')
+
+    @inlineCallbacks
+    def test_page_query(self):
+        """
+        If a query parameter is supplied, a CollectionUsageError should be
+        thrown, as querys are not yet supported.
+        """
+        api = self.mk_api()
+        (code, data) = yield self.request(api, 'GET', '/groups/?query=foo')
+        self.assertEqual(code, 400)
+        self.assertEqual(data.get(u'status_code'), 400)
+        self.assertEqual(data.get(u'reason'), u'query parameter not supported')
+
+    @inlineCallbacks
+    def test_stream_query(self):
+        """
+        If a query parameter is supplied, a CollectionUsageError should be
+        thrown, as querys are not yet supported.
+        """
+        api = self.mk_api()
+        (code, data) = yield self.request(
+            api, 'GET', '/groups/?stream=true&query=foo')
+        self.assertEqual(code, 400)
+        self.assertEqual(data.get(u'status_code'), 400)
+        self.assertEqual(data.get(u'reason'), u'query parameter not supported')
