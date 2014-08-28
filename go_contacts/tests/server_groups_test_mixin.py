@@ -194,11 +194,15 @@ class GroupsApiTestMixin(object):
             })
 
     @inlineCallbacks
-    def test_stream_all_groups(self):
+    def test_stream_all_groups_empty(self):
         api = self.mk_api()
         (code, data) = yield self.request(api, 'GET', '/groups/?stream=true')
         self.assertEqual(code, 200)
         self.assertEqual(data, [])
+
+    @inlineCallbacks
+    def test_stream_all_groups(self):
+        api = self.mk_api()
         group1 = yield self.create_group(api, name=u'Bob')
         group2 = yield self.create_group(api, name=u'Susan')
         group_smart = yield self.create_group(api, name=u'Smart',
