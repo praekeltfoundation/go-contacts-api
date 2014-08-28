@@ -1,7 +1,7 @@
 import json
 from uuid import uuid4
 from urlparse import urlparse, parse_qs
-import codecs
+import itertools
 
 
 class Request(object):
@@ -203,29 +203,27 @@ class FakeGroups(object):
             groups.append(value)
         return groups
 
+    def _paginate(self, group_list, cursor, max_results):
+        group_list.sort(key=lambda group: group['key'])
+        if cursor is not None:
+            group_list = list(itertools.dropwhile(
+                lambda group: group['key'] <= cursor, group_list))
+        new_cursor = None
+        if len(group_list) > max_results:
+            group_list = group_list[:max_results]
+            new_cursor = group_list[-1]['key']
+        return (group_list, new_cursor)
+
     def get_page_groups(self, query, cursor, max_results):
         groups = self.get_all_groups(query)
-        if len(groups) <= 0:
-            return {u'cursor': None, u'data': []}
-        groups.sort(key=lambda group: group.get('key'))
-
-        cursor = cursor and codecs.encode(cursor, 'rot13') or\
-            groups[0].get('key')
-        try:
-            index = [y.get('key') for y in groups].index(cursor)
-        except ValueError:
-            raise FakeContactsError(400, "Cursor not found")
-
+        cursor = cursor and cursor.encode('rot13')
         max_results = (max_results and int(max_results)) or float('inf')
         max_results = min(max_results, self.max_groups_per_page)
 
-        next_index = index + max_results
-        if next_index >= len(groups):
-            next_cursor = None
-        else:
-            next_cursor = codecs.encode(groups[next_index].get('key'), 'rot13')
-        groups = groups[index:next_index]
-        return {u'cursor': next_cursor, u'data': groups}
+        (groups, cursor) = self._paginate(groups, cursor, max_results)
+
+        cursor = cursor and cursor.encode('rot13')
+        return {u'cursor': cursor, u'data': groups}
 
     def update_group(self, group_key, group_data):
         group_data = _data_to_json(group_data)

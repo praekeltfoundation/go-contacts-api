@@ -15,7 +15,7 @@ from go_api.collections.errors import (
 
 from go_contacts.backends.riak import RiakContactsCollection
 
-import codecs
+import itertools
 
 
 def group_to_dict(group):
@@ -100,6 +100,17 @@ class RiakGroupsCollection(object):
         group_list = group_list or []
         returnValue([map(group_to_dict, group_list)])
 
+    def _paginate(self, group_list, cursor, max_results):
+        group_list.sort(key=lambda group: group.key)
+        if cursor is not None:
+            group_list = list(itertools.dropwhile(
+                lambda group: group.key <= cursor, group_list))
+        new_cursor = None
+        if len(group_list) > max_results:
+            group_list = group_list[:max_results]
+            new_cursor = group_list[-1].key
+        return (group_list, new_cursor)
+
     @inlineCallbacks
     def page(self, cursor, max_results, query):
         """
@@ -129,26 +140,14 @@ class RiakGroupsCollection(object):
         max_results = max_results or float('inf')
         max_results = min(max_results, self.max_groups_per_page)
 
+        cursor = cursor and cursor.encode('rot13')
         group_list = yield self.contact_store.list_groups()
-        if len(group_list) <= 0:
-            returnValue((None, []))
 
-        group_list.sort(key=lambda group: group.key)
+        (group_list, cursor) = self._paginate(group_list, cursor, max_results)
 
-        cursor = cursor and codecs.encode(cursor, 'rot13') or group_list[0].key
-        try:
-            cursor_index = [y.key for y in group_list].index(cursor)
-        except ValueError:
-            raise CollectionUsageError("Cursor not found")
-
-        next_index = cursor_index + max_results
-        if next_index >= len(group_list):
-            next_cursor = None
-        else:
-            next_cursor = codecs.encode(group_list[next_index].key, 'rot13')
-
-        group_list = map(group_to_dict, group_list[cursor_index:next_index])
-        returnValue((next_cursor, group_list))
+        cursor = cursor and cursor.encode('rot13')
+        group_list = map(group_to_dict, group_list)
+        returnValue((cursor, group_list))
 
     @inlineCallbacks
     def get(self, object_id):

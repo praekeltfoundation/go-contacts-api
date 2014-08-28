@@ -3,7 +3,6 @@ Tests for groups API cyclone server.
 """
 from twisted.internet.defer import inlineCallbacks
 import json
-import codecs
 
 
 class GroupsApiTestMixin(object):
@@ -285,15 +284,35 @@ class GroupsApiTestMixin(object):
     def test_page_bad_cursor(self):
         """
         If the user requests a cursor that doesn't exists,
-        `groups/?cursor=bad-id`, then a CollectionUsageError should be thrown
+        `groups/?cursor=bad-id`, an empty page should be returned
         """
         api = self.mk_api()
         group = yield self.create_group(api, name=u'Groups 1')
 
         (code, data) = yield self.request(api, 'GET', '/groups/?cursor=bad-id')
-        self.assertEqual(code, 400)
-        self.assertEqual(data.get(u'status_code'), 400)
-        self.assertEqual(data.get(u'reason'), u'Cursor not found')
+        self.assertEqual(code, 200)
+        self.assertEqual(data.get(u'cursor'), None)
+        self.assertEqual(data.get(u'data'), [])
+
+    @inlineCallbacks
+    def test_page_deleted_cursor(self):
+        """
+        If the group linked to the cursor is deleted, it should still return
+        the next page
+        """
+        api = self.mk_api()
+        keys = []
+        for i in range(4):
+            group = yield self.create_group(api, name=u'%s' % str(i)*5)
+            keys.append(group.get('key'))
+        keys.sort()
+        (code, deleted_group) = yield self.request(
+            api, 'DELETE', '/groups/%s' % keys[1])
+        (code, data) = yield self.request(
+            api, 'GET', '/groups/?max_items=2&cursor=%s' %
+            deleted_group['key'].encode('rot13'))
+        self.assertEqual(code, 200)
+        self.assertTrue(data['data'][0]['key'], keys[2])
 
     @inlineCallbacks
     def test_page_query(self):
@@ -335,7 +354,8 @@ class GroupsApiTestMixin(object):
     @inlineCallbacks
     def test_page_cursor_encoding(self):
         """
-        The cursor should be the ROT13 encoding of the next group's key.
+        The cursor should be the ROT13 encoding of the key of the last group on
+        the page
         """
         api = self.mk_api()
         keys = []
@@ -344,4 +364,4 @@ class GroupsApiTestMixin(object):
             keys.append(group.get('key'))
         keys.sort()
         (code, data) = yield self.request(api, 'GET', '/groups/?max_results=2')
-        self.assertEqual(data.get('cursor'), codecs.encode(keys[2], 'rot13'))
+        self.assertEqual(data.get('cursor'), keys[1].encode('rot13'))
