@@ -214,11 +214,15 @@ class GroupsApiTestMixin(object):
         self.assertTrue(group_smart in data)
 
     @inlineCallbacks
-    def test_get_group_page(self):
+    def test_get_group_empty_page(self):
         api = self.mk_api()
         (code, data) = yield self.request(api, 'GET', '/groups/')
         self.assertEqual(code, 200)
         self.assertEqual(data, {'cursor': None, 'data': []})
+
+    @inlineCallbacks
+    def test_get_group_page_multiple(self):
+        api = self.mk_api()
 
         group1 = yield self.create_group(api, name=u'Bob')
         group2 = yield self.create_group(api, name=u'Susan')
