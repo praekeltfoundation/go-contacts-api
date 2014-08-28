@@ -92,7 +92,8 @@ class RiakGroupsCollection(object):
 
         :param unicode query:
             Search term requested through the API. Defaults to ``None`` if no
-            search term was requested.
+            search term was requested. Currently not implemented and will raise
+            a CollectionUsageError if not ``None``.
         """
         if query is not None:
             raise CollectionUsageError("query parameter not supported")
@@ -125,7 +126,8 @@ class RiakGroupsCollection(object):
             to ``None`` if no limit was specified.
         :param unicode query:
             Search term requested through the API. Defaults to ``None`` if no
-            search term was requested.
+            search term was requested. Currently not implemented and will raise
+            a CollectionUsageError if not ``None``.
 
         :return:
             (cursor, data). ``cursor`` is an opaque string that refers to the
