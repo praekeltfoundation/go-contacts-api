@@ -293,3 +293,15 @@ class GroupsApiTestMixin(object):
         self.assertEqual(code, 400)
         self.assertEqual(data.get(u'status_code'), 400)
         self.assertEqual(data.get(u'reason'), u'query parameter not supported')
+
+    @inlineCallbacks
+    def test_default_page_limit(self):
+        """
+        In this test the default page limit is 5. If no limit is given, then
+        the amount of results in a page should default to 5.
+        """
+        api = self.mk_api_lim_5()
+        for i in range(10):
+            yield self.create_group(api, name=u'%s' % str(i)*5)
+        (code, data) = yield self.request(api, 'GET', '/groups/')
+        self.assertEqual(len(data.get(u'data')), 5)
