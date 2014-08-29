@@ -57,11 +57,10 @@ class ContactsApiConfig(Config):
     This is the configuration for the Contacts API.
     """
     max_groups_per_page = ConfigInt(
-        "The maximum number of groups allowed to be returned on a single page",
+        "Maximum number of groups returned per page",
         required=True)
     max_contacts_per_page = ConfigInt(
-        "The maximum number of contacts allowed to be returned on a single " +
-        "page",
+        "Maximum number of contacts returned per page"
         required=True)
     riak_manager = ConfigDict(
         "The configuration parameters for the Riak Manager", required=True)
