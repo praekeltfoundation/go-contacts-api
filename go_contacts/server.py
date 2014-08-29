@@ -12,6 +12,20 @@ from confmodel import Config
 from confmodel.fields import ConfigInt, ConfigDict
 
 
+class ContactsApiConfig(Config):
+    """
+    This is the configuration for the Contacts API.
+    """
+    max_groups_per_page = ConfigInt(
+        "Maximum number of groups returned per page",
+        required=True)
+    max_contacts_per_page = ConfigInt(
+        "Maximum number of contacts returned per page"
+        required=True)
+    riak_manager = ConfigDict(
+        "The configuration parameters for the Riak Manager", required=True)
+
+
 class ContactsApi(ApiApplication):
     """
     :param IContactsBackend backend:
@@ -50,17 +64,3 @@ class ContactsApi(ApiApplication):
             ('/contacts', self.contact_backend.get_contact_collection),
             ('/groups', self.group_backend.get_group_collection),
         )
-
-
-class ContactsApiConfig(Config):
-    """
-    This is the configuration for the Contacts API.
-    """
-    max_groups_per_page = ConfigInt(
-        "Maximum number of groups returned per page",
-        required=True)
-    max_contacts_per_page = ConfigInt(
-        "Maximum number of contacts returned per page"
-        required=True)
-    riak_manager = ConfigDict(
-        "The configuration parameters for the Riak Manager", required=True)
