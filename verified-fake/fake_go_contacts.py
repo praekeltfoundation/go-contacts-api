@@ -214,15 +214,20 @@ class FakeGroups(object):
             new_cursor = group_list[-1]['key']
         return (group_list, new_cursor)
 
+    def _encode_cursor(self, cursor):
+        if cursor is not None:
+            cursor = cursor.encode('rot13')
+        return cursor
+
     def get_page_groups(self, query, cursor, max_results):
         groups = self.get_all_groups(query)
-        cursor = cursor and cursor.encode('rot13')
+        cursor = self._encode_cursor(cursor)
         max_results = (max_results and int(max_results)) or float('inf')
         max_results = min(max_results, self.max_groups_per_page)
 
         (groups, cursor) = self._paginate(groups, cursor, max_results)
 
-        cursor = cursor and cursor.encode('rot13')
+        cursor = self._encode_cursor(cursor)
         return {u'cursor': cursor, u'data': groups}
 
     def update_group(self, group_key, group_data):

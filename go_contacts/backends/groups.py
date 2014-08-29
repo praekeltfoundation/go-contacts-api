@@ -112,6 +112,11 @@ class RiakGroupsCollection(object):
             new_cursor = group_list[-1].key
         return (group_list, new_cursor)
 
+    def _encode_cursor(self, cursor):
+        if cursor is not None:
+            cursor = cursor.encode('rot13')
+        return cursor
+
     @inlineCallbacks
     def page(self, cursor, max_results, query):
         """
@@ -142,12 +147,12 @@ class RiakGroupsCollection(object):
         max_results = max_results or float('inf')
         max_results = min(max_results, self.max_groups_per_page)
 
-        cursor = cursor and cursor.encode('rot13')
+        cursor = self._encode_cursor(cursor)
         group_list = yield self.contact_store.list_groups()
 
         (group_list, cursor) = self._paginate(group_list, cursor, max_results)
 
-        cursor = cursor and cursor.encode('rot13')
+        cursor = self._encode_cursor(cursor)
         group_list = map(group_to_dict, group_list)
         returnValue((cursor, group_list))
 
