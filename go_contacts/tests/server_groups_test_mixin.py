@@ -287,7 +287,7 @@ class GroupsApiTestMixin(object):
         `groups/?cursor=bad-id`, an empty page should be returned
         """
         api = self.mk_api()
-        group = yield self.create_group(api, name=u'Groups 1')
+        yield self.create_group(api, name=u'Groups 1')
 
         (code, data) = yield self.request(api, 'GET', '/groups/?cursor=bad-id')
         self.assertEqual(code, 200)

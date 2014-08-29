@@ -9,7 +9,7 @@ from go_contacts.backends.riak import RiakContactsBackend
 from go_contacts.backends.riak import RiakGroupsBackend
 
 from confmodel import Config
-from confmodel.fields import ConfigText, ConfigInt, ConfigDict
+from confmodel.fields import ConfigInt, ConfigDict
 
 
 class ContactsApi(ApiApplication):
