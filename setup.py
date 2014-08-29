@@ -15,6 +15,7 @@ setup(
         'cyclone',
         'go_api>=0.2.0',
         'vumi-go',
+        'confmodel=0.2.0',
     ],
     classifiers=[
         'Development Status :: 4 - Beta',
