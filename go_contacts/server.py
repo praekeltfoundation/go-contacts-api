@@ -20,7 +20,7 @@ class ContactsApiConfig(Config):
         "Maximum number of groups returned per page",
         required=True)
     max_contacts_per_page = ConfigInt(
-        "Maximum number of contacts returned per page"
+        "Maximum number of contacts returned per page",
         required=True)
     riak_manager = ConfigDict(
         "The configuration parameters for the Riak Manager", required=True)
