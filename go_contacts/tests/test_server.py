@@ -21,6 +21,8 @@ from go_contacts.tests.server_groups_test_mixin import GroupsApiTestMixin
 from go_contacts.tests.server_contacts_test_mixin import ContactsApiTestMixin
 from go_api.collections.errors import CollectionObjectNotFound
 
+from confmodel.errors import ConfigError
+
 
 class TestApiServer(object):
     def test_init_no_configfile(self):
@@ -30,11 +32,14 @@ class TestApiServer(object):
             "Please specify a config file using --appopts=<config.yaml>")
 
     def test_init_no_riak_config(self):
-        configfile = self.mk_config({})
-        err = self.assertRaises(ValueError, ContactsApi, configfile)
+        configfile = self.mk_config({
+            'max_groups_per_page': 10,
+            'max_contacts_per_page': 10,
+            })
+        err = self.assertRaises(ConfigError, ContactsApi, configfile)
         self.assertEqual(
             str(err),
-            "Config file must contain a riak_manager entry.")
+            "Missing required config field 'riak_manager'")
 
     def test_init_no_contact_limit(self):
         configfile = self.mk_config({
@@ -43,10 +48,10 @@ class TestApiServer(object):
             },
             "max_groups_per_page": 10,
         })
-        err = self.assertRaises(ValueError, ContactsApi, configfile)
+        err = self.assertRaises(ConfigError, ContactsApi, configfile)
         self.assertEqual(
             str(err),
-            "Config file must contain the limit max_contacts_per_page")
+            "Missing required config field 'max_contacts_per_page'")
 
     def test_init_no_group_limit(self):
         configfile = self.mk_config({
@@ -55,10 +60,10 @@ class TestApiServer(object):
             },
             "max_contacts_per_page": 10,
         })
-        err = self.assertRaises(ValueError, ContactsApi, configfile)
+        err = self.assertRaises(ConfigError, ContactsApi, configfile)
         self.assertEqual(
             str(err),
-            "Config file must contain the limit max_groups_per_page")
+            "Missing required config field 'max_groups_per_page'")
 
     def test_collections(self):
         api = self.mk_api()
