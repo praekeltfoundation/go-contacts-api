@@ -34,12 +34,20 @@ class ContactsApi(ApiApplication):
 
     def _setup_contacts_backend(self, config):
         riak_manager = self._get_riak_manager(config)
-        backend = RiakContactsBackend(riak_manager)
+        if "max_contacts_per_page" not in config:
+            raise ValueError(
+                "Config file must contain the limit max_contacts_per_page")
+        max_contacts_per_page = config['max_contacts_per_page']
+        backend = RiakContactsBackend(riak_manager, max_contacts_per_page)
         return backend
 
     def _setup_groups_backend(self, config):
         riak_manager = self._get_riak_manager(config)
-        backend = RiakGroupsBackend(riak_manager)
+        if "max_groups_per_page" not in config:
+            raise ValueError(
+                "Config file must contain the limit max_groups_per_page")
+        max_groups_per_page = config['max_groups_per_page']
+        backend = RiakGroupsBackend(riak_manager, max_groups_per_page)
         return backend
 
     @property

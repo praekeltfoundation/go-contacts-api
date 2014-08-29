@@ -192,3 +192,176 @@ class GroupsApiTestMixin(object):
             u'reason': u"Group 'bad-id' not found.",
             u'status_code': 404,
             })
+
+    @inlineCallbacks
+    def test_stream_all_groups_empty(self):
+        api = self.mk_api()
+        (code, data) = yield self.request(api, 'GET', '/groups/?stream=true')
+        self.assertEqual(code, 200)
+        self.assertEqual(data, [])
+
+    @inlineCallbacks
+    def test_stream_all_groups(self):
+        api = self.mk_api()
+        group1 = yield self.create_group(api, name=u'Bob')
+        group2 = yield self.create_group(api, name=u'Susan')
+        group_smart = yield self.create_group(api, name=u'Smart',
+                                              query=u'test_query')
+        (code, data) = yield self.request(api, 'GET', '/groups/?stream=true')
+        self.assertEqual(code, 200)
+        self.assertTrue(group1 in data)
+        self.assertTrue(group2 in data)
+        self.assertTrue(group_smart in data)
+
+    @inlineCallbacks
+    def test_get_group_empty_page(self):
+        api = self.mk_api()
+        (code, data) = yield self.request(api, 'GET', '/groups/')
+        self.assertEqual(code, 200)
+        self.assertEqual(data, {'cursor': None, 'data': []})
+
+    @inlineCallbacks
+    def test_get_group_page_multiple(self):
+        api = self.mk_api()
+
+        group1 = yield self.create_group(api, name=u'Bob')
+        group2 = yield self.create_group(api, name=u'Susan')
+        group_smart = yield self.create_group(api, name=u'Smart',
+                                              query=u'test_query')
+
+        (code, data) = yield self.request(api, 'GET', '/groups/?max_results=2')
+        self.assertEqual(code, 200)
+        cursor = data[u'cursor']
+        groups = data[u'data']
+        self.assertEqual(len(groups), 2)
+
+        (code, data) = yield self.request(
+            api, 'GET',
+            '/groups/?max_results=2&cursor=%s' % cursor.encode('ascii'))
+        self.assertEqual(code, 200)
+        self.assertEqual(data[u'cursor'], None)
+        groups += data[u'data']
+
+        self.assertTrue(group1 in groups)
+        self.assertTrue(group2 in groups)
+        self.assertTrue(group_smart in groups)
+
+    @inlineCallbacks
+    def test_get_group_page_single(self):
+        api = self.mk_api()
+
+        group = yield self.create_group(api, name=u'Bob')
+        group_smart = yield self.create_group(api, name=u'Smart',
+                                              query=u'test_query')
+
+        (code, data) = yield self.request(api, 'GET', '/groups/?max_results=2')
+        self.assertEqual(code, 200)
+        cursor = data[u'cursor']
+        groups = data[u'data']
+        self.assertEqual(len(groups), 2)
+        self.assertEqual(cursor, None)
+        self.assertTrue(group in groups)
+        self.assertTrue(group_smart in groups)
+
+    @inlineCallbacks
+    def test_page_default_limit(self):
+        """
+        For this test, the default limit per page is set to 5. If the user
+        requests more than this, `groups/?max_results=10`, it should only
+        return the maximum of 5 results per page.
+        """
+        api = self.mk_api_lim_5()
+
+        for i in range(10):
+            yield self.create_group(api, name=u'%s' % str(i)*5)
+
+        (code, data) = yield self.request(
+            api, 'GET', '/groups/?max_results=10')
+        self.assertEqual(code, 200)
+        self.assertEqual(len(data.get('data')), 5)
+
+    @inlineCallbacks
+    def test_page_bad_cursor(self):
+        """
+        If the user requests a cursor that doesn't exists,
+        `groups/?cursor=bad-id`, an empty page should be returned
+        """
+        api = self.mk_api()
+        group = yield self.create_group(api, name=u'Groups 1')
+
+        (code, data) = yield self.request(api, 'GET', '/groups/?cursor=bad-id')
+        self.assertEqual(code, 200)
+        self.assertEqual(data.get(u'cursor'), None)
+        self.assertEqual(data.get(u'data'), [])
+
+    @inlineCallbacks
+    def test_page_deleted_cursor(self):
+        """
+        If the group linked to the cursor is deleted, it should still return
+        the next page
+        """
+        api = self.mk_api()
+        keys = []
+        for i in range(4):
+            group = yield self.create_group(api, name=u'%s' % str(i)*5)
+            keys.append(group.get('key'))
+        keys.sort()
+        (code, deleted_group) = yield self.request(
+            api, 'DELETE', '/groups/%s' % keys[1])
+        (code, data) = yield self.request(
+            api, 'GET', '/groups/?max_items=2&cursor=%s' %
+            deleted_group['key'].encode('rot13'))
+        self.assertEqual(code, 200)
+        self.assertTrue(data['data'][0]['key'], keys[2])
+
+    @inlineCallbacks
+    def test_page_query(self):
+        """
+        If a query parameter is supplied, a CollectionUsageError should be
+        thrown, as querys are not yet supported.
+        """
+        api = self.mk_api()
+        (code, data) = yield self.request(api, 'GET', '/groups/?query=foo')
+        self.assertEqual(code, 400)
+        self.assertEqual(data.get(u'status_code'), 400)
+        self.assertEqual(data.get(u'reason'), u'query parameter not supported')
+
+    @inlineCallbacks
+    def test_stream_query(self):
+        """
+        If a query parameter is supplied, a CollectionUsageError should be
+        thrown, as querys are not yet supported.
+        """
+        api = self.mk_api()
+        (code, data) = yield self.request(
+            api, 'GET', '/groups/?stream=true&query=foo')
+        self.assertEqual(code, 400)
+        self.assertEqual(data.get(u'status_code'), 400)
+        self.assertEqual(data.get(u'reason'), u'query parameter not supported')
+
+    @inlineCallbacks
+    def test_default_page_limit(self):
+        """
+        In this test the default page limit is 5. If no limit is given, then
+        the amount of results in a page should default to 5.
+        """
+        api = self.mk_api_lim_5()
+        for i in range(10):
+            yield self.create_group(api, name=u'%s' % str(i)*5)
+        (code, data) = yield self.request(api, 'GET', '/groups/')
+        self.assertEqual(len(data.get(u'data')), 5)
+
+    @inlineCallbacks
+    def test_page_cursor_encoding(self):
+        """
+        The cursor should be the ROT13 encoding of the key of the last group on
+        the page
+        """
+        api = self.mk_api()
+        keys = []
+        for i in range(3):
+            group = yield self.create_group(api, name=u'%s' % str(i)*5)
+            keys.append(group.get('key'))
+        keys.sort()
+        (code, data) = yield self.request(api, 'GET', '/groups/?max_results=2')
+        self.assertEqual(data.get('cursor'), keys[1].encode('rot13'))

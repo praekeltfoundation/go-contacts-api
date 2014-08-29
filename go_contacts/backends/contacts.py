@@ -33,17 +33,19 @@ def contact_to_dict(contact):
 
 
 class RiakContactsBackend(object):
-    def __init__(self, riak_manager):
+    def __init__(self, riak_manager, max_contacts_per_page):
         self.riak_manager = riak_manager
+        self.max_contacts_per_page = max_contacts_per_page
 
     def get_contact_collection(self, owner_id):
         contact_store = ContactStore(self.riak_manager, owner_id)
-        return RiakContactsCollection(contact_store)
+        return RiakContactsCollection(
+            contact_store, self.max_contacts_per_page)
 
 
 @implementer(ICollection)
 class RiakContactsCollection(object):
-    def __init__(self, contact_store):
+    def __init__(self, contact_store, max_contacts_per_page):
         self.contact_store = contact_store
 
     @staticmethod
@@ -84,11 +86,38 @@ class RiakContactsCollection(object):
         """
         raise NotImplementedError()
 
-    def all(self):
+    def stream(self, query):
         """
         Return an iterable over all objects in the collection. The iterable may
         contain deferreds instead of objects. May return a deferred instead of
         the iterable.
+
+        :param unicode query:
+            Search term requested through the API. Defaults to ``None`` if no
+            search term was requested.
+        """
+        raise NotImplementedError()
+
+    def page(self, cursor, max_results, query):
+        """
+        Generages a page which contains a subset of the objects in the
+        collection.
+
+        :param unicode cursor:
+            Used to determine the start point of the page. Defaults to ``None``
+            if no cursor was supplied.
+        :param int max_results:
+            Used to limit the number of results presented in a page. Defaults
+            to ``None`` if no limit was specified.
+        :param unicode query:
+            Search term requested through the API. Defaults to ``None`` if no
+            search term was requested.
+
+        :return:
+            (cursor, data). ``cursor`` is an opaque string that refers to the
+            next page, and is ``None`` if this is the last page. ``data`` is a
+            list of all the objects within the page.
+        :rtype: tuple
         """
         raise NotImplementedError()
 

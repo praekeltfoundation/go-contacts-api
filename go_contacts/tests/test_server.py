@@ -36,6 +36,30 @@ class TestApiServer(object):
             str(err),
             "Config file must contain a riak_manager entry.")
 
+    def test_init_no_contact_limit(self):
+        configfile = self.mk_config({
+            "riak_manager": {
+                "bucket_prefix": "test",
+            },
+            "max_groups_per_page": 10,
+        })
+        err = self.assertRaises(ValueError, ContactsApi, configfile)
+        self.assertEqual(
+            str(err),
+            "Config file must contain the limit max_contacts_per_page")
+
+    def test_init_no_group_limit(self):
+        configfile = self.mk_config({
+            "riak_manager": {
+                "bucket_prefix": "test",
+            },
+            "max_contacts_per_page": 10,
+        })
+        err = self.assertRaises(ValueError, ContactsApi, configfile)
+        self.assertEqual(
+            str(err),
+            "Config file must contain the limit max_groups_per_page")
+
     def test_collections(self):
         api = self.mk_api()
         self.assertEqual(api.collections, (
@@ -75,6 +99,8 @@ class TestContactsApi(VumiTestCase, ContactsApiTestMixin,
             "riak_manager": {
                 "bucket_prefix": "test",
             },
+            "max_contacts_per_page": 10,
+            "max_groups_per_page": 10,
         })
         return ContactsApi(configfile)
 
@@ -119,6 +145,8 @@ class TestContactsApi(VumiTestCase, ContactsApiTestMixin,
             "riak_manager": {
                 "bucket_prefix": "test",
             },
+            "max_groups_per_page": 10,
+            "max_contacts_per_page": 10,
         })
         api = ContactsApi(configfile)
         self.assertTrue(isinstance(api.contact_backend, RiakContactsBackend))
@@ -184,6 +212,18 @@ class TestGroupsApi(VumiTestCase, GroupsApiTestMixin):
             "riak_manager": {
                 "bucket_prefix": "test",
             },
+            "max_contacts_per_page": 10,
+            "max_groups_per_page": 10,
+        })
+        return ContactsApi(configfile)
+
+    def mk_api_lim_5(self):
+        configfile = self.mk_config({
+            "riak_manager": {
+                "bucket_prefix": "test",
+            },
+            "max_contacts_per_page": 5,
+            "max_groups_per_page": 5,
         })
         return ContactsApi(configfile)
 
@@ -232,6 +272,8 @@ class TestGroupsApi(VumiTestCase, GroupsApiTestMixin):
             "riak_manager": {
                 "bucket_prefix": "test",
             },
+            "max_contacts_per_page": 10,
+            "max_groups_per_page": 10,
         })
         api = ContactsApi(configfile)
         self.assertTrue(isinstance(api.group_backend, RiakGroupsBackend))
@@ -254,7 +296,10 @@ class TestFakeGroupsApi(VumiTestCase, GroupsApiTestMixin):
         self.api_class = FakeContactsApi
 
     def mk_api(self):
-        return self.api_class("", "token-1")
+        return self.api_class("", "token-1", {}, {})
+
+    def mk_api_lim_5(self):
+        return self.api_class("", "token-1", {}, {}, 5, 5)
 
     def request(self, api, method, path, body=None, headers=None, auth=True):
         if headers is None:

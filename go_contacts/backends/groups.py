@@ -15,6 +15,8 @@ from go_api.collections.errors import (
 
 from go_contacts.backends.riak import RiakContactsCollection
 
+import itertools
+
 
 def group_to_dict(group):
     """
@@ -34,19 +36,21 @@ def settable_group_fields(**fields):
 
 
 class RiakGroupsBackend(object):
-    def __init__(self, riak_manager):
+    def __init__(self, riak_manager, max_groups_per_page):
         self.riak_manager = riak_manager
+        self.max_groups_per_page = max_groups_per_page
 
     def get_group_collection(self, owner_id):
         contact_store = ContactStore(self.riak_manager, owner_id)
-        return RiakGroupsCollection(contact_store)
+        return RiakGroupsCollection(contact_store, self.max_groups_per_page)
 
 
 @implementer(ICollection)
 class RiakGroupsCollection(object):
 
-    def __init__(self, contact_store):
+    def __init__(self, contact_store, max_groups_per_page):
         self.contact_store = contact_store
+        self.max_groups_per_page = max_groups_per_page
 
     @classmethod
     def _pick_group_fields(cls, data):
@@ -79,13 +83,79 @@ class RiakGroupsCollection(object):
         """
         raise NotImplementedError()
 
-    def all(self):
+    @inlineCallbacks
+    def stream(self, query):
         """
         Return an iterable over all objects in the collection. The iterable may
         contain deferreds instead of objects. May return a deferred instead of
         the iterable.
+
+        :param unicode query:
+            Search term requested through the API. Defaults to ``None`` if no
+            search term was requested. Currently not implemented and will raise
+            a CollectionUsageError if not ``None``.
         """
-        raise NotImplementedError()
+        if query is not None:
+            raise CollectionUsageError("query parameter not supported")
+        group_list = yield self.contact_store.list_groups()
+        group_list = group_list or []
+        returnValue([map(group_to_dict, group_list)])
+
+    def _paginate(self, group_list, cursor, max_results):
+        group_list.sort(key=lambda group: group.key)
+        if cursor is not None:
+            group_list = list(itertools.dropwhile(
+                lambda group: group.key <= cursor, group_list))
+        new_cursor = None
+        if len(group_list) > max_results:
+            group_list = group_list[:max_results]
+            new_cursor = group_list[-1].key
+        return (group_list, new_cursor)
+
+    def _encode_cursor(self, cursor):
+        if cursor is not None:
+            cursor = cursor.encode('rot13')
+        return cursor
+
+    @inlineCallbacks
+    def page(self, cursor, max_results, query):
+        """
+        Generages a page which contains a subset of the objects in the
+        collection.
+
+        :param unicode cursor:
+            Used to determine the start point of the page. Defaults to ``None``
+            if no cursor was supplied.
+        :param int max_results:
+            Used to limit the number of results presented in a page. Defaults
+            to ``None`` if no limit was specified.
+        :param unicode query:
+            Search term requested through the API. Defaults to ``None`` if no
+            search term was requested. Currently not implemented and will raise
+            a CollectionUsageError if not ``None``.
+
+        :return:
+            (cursor, data). ``cursor`` is an opaque string that refers to the
+            next page, and is ``None`` if this is the last page. ``data`` is a
+            list of all the objects within the page.
+        :rtype: tuple
+        """
+        # TODO: Use riak pagination instead of fake pagination
+        if query is not None:
+            raise CollectionUsageError("query parameter not supported")
+
+        max_results = max_results or float('inf')
+        max_results = min(max_results, self.max_groups_per_page)
+
+        # Encoding and decoding are the same operation
+        cursor = self._encode_cursor(cursor)
+        group_list = yield self.contact_store.list_groups()
+
+        (group_list, cursor) = self._paginate(group_list, cursor, max_results)
+
+        cursor = self._encode_cursor(cursor)
+        group_list = map(group_to_dict, group_list)
+        returnValue((cursor, group_list))
 
     @inlineCallbacks
     def get(self, object_id):

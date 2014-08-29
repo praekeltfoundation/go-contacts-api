@@ -1,5 +1,7 @@
 import json
 from uuid import uuid4
+from urlparse import urlparse, parse_qs
+import itertools
 
 
 class Request(object):
@@ -53,8 +55,9 @@ class FakeContacts(object):
     """
     Fake implementation of the Contacts part of the Contacts API
     """
-    def __init__(self, contacts_data={}):
+    def __init__(self, contacts_data={}, max_contacts_per_page=10):
         self.contacts_data = contacts_data
+        self.max_contacts_per_page = max_contacts_per_page
 
     @staticmethod
     def make_contact_dict(fields):
@@ -124,7 +127,7 @@ class FakeContacts(object):
         self.contacts_data.pop(contact_key)
         return contact
 
-    def request(self, request, contact_key):
+    def request(self, request, contact_key, query):
         if not contact_key:
             if request.method == "POST":
                 return self.create_contact(request.body)
@@ -146,8 +149,9 @@ class FakeGroups(object):
     """
     Fake implementation of the Groups part of the Contacts API
     """
-    def __init__(self, groups_data={}):
+    def __init__(self, groups_data={}, max_groups_per_page=10):
         self.groups_data = groups_data
+        self.max_groups_per_page = max_groups_per_page
 
     @staticmethod
     def make_group_dict(fields):
@@ -191,6 +195,43 @@ class FakeGroups(object):
                 404, u"Group %r not found." % (group_key,))
         return group
 
+    def get_all_groups(self, query):
+        if query is not None:
+            raise FakeContactsError(400, "query parameter not supported")
+        groups = []
+        for key, value in self.groups_data.iteritems():
+            groups.append(value)
+        return groups
+
+    def _paginate(self, group_list, cursor, max_results):
+        group_list.sort(key=lambda group: group['key'])
+        if cursor is not None:
+            group_list = list(itertools.dropwhile(
+                lambda group: group['key'] <= cursor, group_list))
+        new_cursor = None
+        if len(group_list) > max_results:
+            group_list = group_list[:max_results]
+            new_cursor = group_list[-1]['key']
+        return (group_list, new_cursor)
+
+    def _encode_cursor(self, cursor):
+        if cursor is not None:
+            cursor = cursor.encode('rot13')
+        return cursor
+
+    def get_page_groups(self, query, cursor, max_results):
+        groups = self.get_all_groups(query)
+
+        # Encoding and decoding are the same operation
+        cursor = self._encode_cursor(cursor)
+        max_results = (max_results and int(max_results)) or float('inf')
+        max_results = min(max_results, self.max_groups_per_page)
+
+        (groups, cursor) = self._paginate(groups, cursor, max_results)
+
+        cursor = self._encode_cursor(cursor)
+        return {u'cursor': cursor, u'data': groups}
+
     def update_group(self, group_key, group_data):
         group_data = _data_to_json(group_data)
         group = self.get_group(group_key)
@@ -203,14 +244,31 @@ class FakeGroups(object):
         self.groups_data.pop(group_key)
         return group
 
-    def request(self, request, contact_key):
+    def get_all(self, query):
+        stream = query.get('stream', None)
+        stream = stream and stream[0]
+        q = query.get('query', None)
+        q = q and q[0]
+        if stream == 'true':
+            return self.get_all_groups(q)
+        else:
+            cursor = query.get('cursor', None)
+            cursor = cursor and cursor[0]
+            max_results = query.get('max_results', None)
+            max_results = max_results and max_results[0]
+            return self.get_page_groups(q, cursor, max_results)
+
+    def request(self, request, contact_key, query):
         if request.method == "POST":
             if contact_key is None or contact_key is "":
                 return self.create_group(request.body)
             else:
                 raise FakeContactsError(405, "Method Not Allowed")
         elif request.method == "GET":
-            return self.get_group(contact_key)
+            if contact_key is None or contact_key == "":
+                return self.get_all(query)
+            else:
+                return self.get_group(contact_key)
         elif request.method == "PUT":
             # NOTE: This is an incorrect use of the PUT method, but
             # it's what we have for now.
@@ -226,11 +284,11 @@ class FakeContactsApi(object):
     Fake implementation of the Vumi Go contacts API.
     """
     def __init__(self, url_path_prefix, auth_token, contacts_data={},
-                 groups_data={}):
+                 groups_data={}, group_limit=10, contacts_limit=10):
         self.url_path_prefix = url_path_prefix
         self.auth_token = auth_token
-        self.contacts = FakeContacts(contacts_data)
-        self.groups = FakeGroups(groups_data)
+        self.contacts = FakeContacts(contacts_data, contacts_limit)
+        self.groups = FakeGroups(groups_data, group_limit)
 
     make_contact_dict = staticmethod(FakeContacts.make_contact_dict)
     make_group_dict = staticmethod(FakeGroups.make_group_dict)
@@ -241,6 +299,8 @@ class FakeContactsApi(object):
         if not self.check_auth(request):
             return self.build_response("", 403)
 
+        url = urlparse(request.path)
+        request.path = url.path
         request_type = request.path.replace(
             self.url_path_prefix, '').lstrip('/')
         request_type = request_type[:request_type.find('/')]
@@ -256,7 +316,8 @@ class FakeContactsApi(object):
             self.build_response("", 404)
 
         try:
-            return self.build_response(handler.request(request, contact_key))
+            return self.build_response(handler.request(request, contact_key,
+                                       parse_qs(url.query)))
         except FakeContactsError as err:
             return self.build_response(err.data, err.code)
 
