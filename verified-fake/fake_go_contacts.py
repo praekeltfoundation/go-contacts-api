@@ -221,6 +221,8 @@ class FakeGroups(object):
 
     def get_page_groups(self, query, cursor, max_results):
         groups = self.get_all_groups(query)
+
+        # Encoding and decoding are the same operation
         cursor = self._encode_cursor(cursor)
         max_results = (max_results and int(max_results)) or float('inf')
         max_results = min(max_results, self.max_groups_per_page)
