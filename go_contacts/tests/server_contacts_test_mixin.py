@@ -259,3 +259,36 @@ class ContactsApiTestMixin(object):
             u"status_code": 404,
             u"reason": u"Contact 'bad-id' not found.",
         }))
+
+    @inlineCallbacks
+    def test_stream_contacts_query(self):
+        """
+        If a query parameter is supplied, a CollectionUsageError should be
+        thrown, as queries are not yet supported.
+        """
+        api = self.mk_api()
+        (code, data) = yield self.request(
+            api, 'GET', '/contacts/?stream=true&query=foo')
+        self.assertEqual(code, 400)
+        self.assertEqual(data.get(u'status_code'), 400)
+        self.assertEqual(data.get(u'reason'), u'query parameter not supported')
+
+    @inlineCallbacks
+    def test_stream_all_contacts_empty(self):
+        api = self.mk_api()
+        (code, data) = yield self.request(api, 'GET', '/contacts/?stream=true')
+        self.assertEqual(code, 200)
+        self.assertEqual(data, [])
+
+    @inlineCallbacks
+    def test_stream_all_contacts(self):
+        api = self.mk_api()
+        contact1 = yield self.create_contact(
+            api, name=u"Bob", msisdn=u"+12345")
+        contact2 = yield self.create_contact(
+            api, name=u"Susan", msisdn=u"+54321")
+
+        (code, data) = yield self.request(api, 'GET', '/contacts/?stream=true')
+        self.assertEqual(code, 200)
+        self.assertTrue(contact1 in data)
+        self.assertTrue(contact2 in data)

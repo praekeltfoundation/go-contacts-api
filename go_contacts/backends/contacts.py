@@ -86,6 +86,7 @@ class RiakContactsCollection(object):
         """
         raise NotImplementedError()
 
+    @inlineCallbacks
     def stream(self, query):
         """
         Return an iterable over all objects in the collection. The iterable may
@@ -96,7 +97,15 @@ class RiakContactsCollection(object):
             Search term requested through the API. Defaults to ``None`` if no
             search term was requested.
         """
-        raise NotImplementedError()
+        if query is not None:
+            raise CollectionUsageError("query parameter not supported")
+        contact_keys = yield self.contact_store.list_contacts()
+        contact_keys = contact_keys or []
+        contact_list = []
+        for key in contact_keys:
+            contact = yield self.contact_store.get_contact_by_key(key)
+            contact_list.append(contact)
+        returnValue([map(contact_to_dict, contact_list)])
 
     def page(self, cursor, max_results, query):
         """

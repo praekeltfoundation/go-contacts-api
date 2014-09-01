@@ -114,6 +114,19 @@ class FakeContacts(object):
                 404, u"Contact %r not found." % (contact_key,))
         return contact
 
+    def get_all_contacts(self, query):
+        if query is not None:
+            raise FakeContactsError(400, "query parameter not supported")
+        return self.contacts_data.values()
+
+    def get_all(self, query):
+        stream = query.get('stream', None)
+        stream = stream and stream[0]
+        q = query.get('query', None)
+        q = q and [0]
+        if stream == 'true':
+            return self.get_all_contacts(q)
+
     def update_contact(self, contact_key, contact_data):
         contact = self.get_contact(contact_key)
         contact_data = _data_to_json(contact_data)
@@ -128,13 +141,16 @@ class FakeContacts(object):
         return contact
 
     def request(self, request, contact_key, query):
-        if not contact_key:
-            if request.method == "POST":
+        if request.method == "POST":
+            if contact_key is None or contact_key is "":
                 return self.create_contact(request.body)
             else:
                 raise FakeContactsError(405, "")
         if request.method == "GET":
-            return self.get_contact(contact_key)
+            if contact_key is None or contact_key is "":
+                return self.get_all(query)
+            else:
+                return self.get_contact(contact_key)
         elif request.method == "PUT":
             # NOTE: This is an incorrect use of the PUT method, but
             # it's what we have for now.
@@ -198,10 +214,7 @@ class FakeGroups(object):
     def get_all_groups(self, query):
         if query is not None:
             raise FakeContactsError(400, "query parameter not supported")
-        groups = []
-        for key, value in self.groups_data.iteritems():
-            groups.append(value)
-        return groups
+        return self.groups_data.values()
 
     def _paginate(self, group_list, cursor, max_results):
         group_list.sort(key=lambda group: group['key'])
