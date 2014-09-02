@@ -123,9 +123,44 @@ class FakeContacts(object):
         stream = query.get('stream', None)
         stream = stream and stream[0]
         q = query.get('query', None)
-        q = q and [0]
+        q = q and q[0]
         if stream == 'true':
             return self.get_all_contacts(q)
+        else:
+            cursor = query.get('cursor', None)
+            cursor = cursor and cursor[0]
+            max_results = query.get('max_results', None)
+            max_results = max_results and max_results[0]
+            return self.get_page_contacts(q, cursor, max_results)
+
+    def _paginate(self, contact_list, cursor, max_results):
+        contact_list.sort(key=lambda contact: contact['key'])
+        if cursor is not None:
+            contact_list = list(itertools.dropwhile(
+                lambda contact: contact['key'] <= cursor, contact_list))
+        new_cursor = None
+        if len(contact_list) > max_results:
+            contact_list = contact_list[:max_results]
+            new_cursor = contact_list[-1]['key']
+        return (contact_list, new_cursor)
+
+    def _encode_cursor(self, cursor):
+        if cursor is not None:
+            cursor = cursor.encode('rot13')
+        return cursor
+
+    def get_page_contacts(self, query, cursor, max_results):
+        contacts = self.get_all_contacts(query)
+
+        # Encoding and decoding are the same operation
+        cursor = self._encode_cursor(cursor)
+        max_results = (max_results and int(max_results)) or float('inf')
+        max_results = min(max_results, self.max_contacts_per_page)
+
+        (contacts, cursor) = self._paginate(contacts, cursor, max_results)
+
+        cursor = self._encode_cursor(cursor)
+        return {u'cursor': cursor, u'data': contacts}
 
     def update_contact(self, contact_key, contact_data):
         contact = self.get_contact(contact_key)

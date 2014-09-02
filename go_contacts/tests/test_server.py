@@ -109,6 +109,16 @@ class TestContactsApi(VumiTestCase, ContactsApiTestMixin,
         })
         return ContactsApi(configfile)
 
+    def mk_api_lim_5(self):
+        configfile = self.mk_config({
+            "riak_manager": {
+                "bucket_prefix": "test",
+            },
+            "max_contacts_per_page": 5,
+            "max_groups_per_page": 5,
+        })
+        return ContactsApi(configfile)
+
     @inlineCallbacks
     def request(self, api, method, path, body=None, headers=None, auth=True):
         if headers is None:
@@ -175,6 +185,9 @@ class TestFakeContactsApi(VumiTestCase, ContactsApiTestMixin):
 
     def mk_api(self):
         return self.api_class("", "token-1", {})
+
+    def mk_api_lim_5(self):
+        return self.api_class("", "token-1", {}, {}, 5, 5)
 
     def request(self, api, method, path, body=None, headers=None, auth=True):
         if headers is None:
