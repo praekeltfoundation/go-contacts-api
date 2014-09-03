@@ -9,11 +9,12 @@ class Request(object):
     Representation of an HTTP request.
     """
 
-    def __init__(self, method, path, body=None, headers=None):
+    def __init__(self, method, path, body=None, headers=None, parser=None):
         self.method = method
         self.path = path
         self.body = body
         self.headers = headers if headers is not None else {}
+        self.parser = parser
 
 
 class Response(object):
@@ -350,14 +351,20 @@ class FakeContactsApi(object):
             self.build_response("", 404)
 
         try:
-            return self.build_response(handler.request(request, contact_key,
-                                       parse_qs(url.query)))
+            return self.build_response(
+                handler.request(request, contact_key, parse_qs(url.query)),
+                parser=request.parser)
         except FakeContactsError as err:
-            return self.build_response(err.data, err.code)
+            return self.build_response(
+                err.data, err.code, parser=request.parser)
 
     def check_auth(self, request):
         auth_header = request.headers.get("Authorization")
         return auth_header == "Bearer %s" % (self.auth_token,)
 
-    def build_response(self, content, code=200, headers=None):
+    def build_response(self, content, code=200, headers=None, parser=None):
+        if parser == 'json_lines':
+            # To emulate that single items are returned as a singleton list
+            if not isinstance(content, list):
+                content = [content]
         return Response(code, headers, content)

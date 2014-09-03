@@ -2,8 +2,6 @@
 Tests for contacts API cyclone server.
 """
 
-import json
-
 import yaml
 
 from twisted.internet.defer import inlineCallbacks, returnValue
@@ -110,7 +108,9 @@ class TestContactsApi(VumiTestCase, ContactsApiTestMixin,
         return ContactsApi(configfile)
 
     @inlineCallbacks
-    def request(self, api, method, path, body=None, headers=None, auth=True):
+    def request(
+            self, api, method, path, body=None, headers=None, auth=True,
+            parser=None):
         if headers is None:
             headers = {}
         if auth:
@@ -118,7 +118,11 @@ class TestContactsApi(VumiTestCase, ContactsApiTestMixin,
         app_helper = AppHelper(app=api)
         resp = yield app_helper.request(
             method, path, data=body, headers=headers)
-        data = yield resp.json()
+        if parser is not None:
+            data = yield app_helper.request(
+                method, path, data=body, headers=headers, parser=parser)
+        else:
+            data = yield resp.json()
         returnValue((resp.code, data))
 
     def _store(self, api):
@@ -176,14 +180,16 @@ class TestFakeContactsApi(VumiTestCase, ContactsApiTestMixin):
     def mk_api(self, limit=10):
         return self.api_class("", "token-1", {}, {}, limit, limit)
 
-    def request(self, api, method, path, body=None, headers=None, auth=True):
+    def request(
+            self, api, method, path, body=None, headers=None, auth=True,
+            parser=None):
         if headers is None:
             headers = {}
         if auth:
             headers["Authorization"] = "Bearer token-1"
         resp = api.handle_request(self.req_class(
-            method, path, body=body, headers=headers))
-        return resp.code, json.loads(resp.body)
+            method, path, body=body, headers=headers, parser=parser))
+        return resp.code, resp.data
 
     def create_contact(self, api, **contact_data):
         return api.contacts.create_contact(contact_data)
@@ -242,7 +248,9 @@ class TestGroupsApi(VumiTestCase, GroupsApiTestMixin):
         returnValue(group_to_dict(group))
 
     @inlineCallbacks
-    def request(self, api, method, path, body=None, headers=None, auth=True):
+    def request(
+            self, api, method, path, body=None, headers=None, auth=True,
+            parser=None):
         if headers is None:
             headers = {}
         if auth:
@@ -250,7 +258,11 @@ class TestGroupsApi(VumiTestCase, GroupsApiTestMixin):
         app_helper = AppHelper(app=api)
         resp = yield app_helper.request(
             method, path, data=body, headers=headers)
-        data = yield resp.json()
+        if parser is not None:
+            data = yield app_helper.request(
+                method, path, data=body, headers=headers, parser=parser)
+        else:
+            data = yield resp.json()
         returnValue((resp.code, data))
 
     @inlineCallbacks
@@ -293,14 +305,16 @@ class TestFakeGroupsApi(VumiTestCase, GroupsApiTestMixin):
     def mk_api(self, limit=10):
         return self.api_class("", "token-1", {}, {}, limit, limit)
 
-    def request(self, api, method, path, body=None, headers=None, auth=True):
+    def request(
+            self, api, method, path, body=None, headers=None, auth=True,
+            parser=None):
         if headers is None:
             headers = {}
         if auth:
             headers["Authorization"] = "Bearer token-1"
         resp = api.handle_request(self.req_class(
-            method, path, body=body, headers=headers))
-        return resp.code, json.loads(resp.body)
+            method, path, body=body, headers=headers, parser=parser))
+        return resp.code, resp.data
 
     def create_group(self, api, **group_data):
         return api.groups.create_group(group_data)

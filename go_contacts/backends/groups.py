@@ -99,7 +99,7 @@ class RiakGroupsCollection(object):
             raise CollectionUsageError("query parameter not supported")
         group_list = yield self.contact_store.list_groups()
         group_list = group_list or []
-        returnValue([map(group_to_dict, group_list)])
+        returnValue(map(group_to_dict, group_list))
 
     @inlineCallbacks
     def page(self, cursor, max_results, query):

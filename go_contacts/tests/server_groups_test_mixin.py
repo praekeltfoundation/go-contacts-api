@@ -196,7 +196,8 @@ class GroupsApiTestMixin(object):
     @inlineCallbacks
     def test_stream_all_groups_empty(self):
         api = self.mk_api()
-        (code, data) = yield self.request(api, 'GET', '/groups/?stream=true')
+        (code, data) = yield self.request(
+            api, 'GET', '/groups/?stream=true', parser='json_lines')
         self.assertEqual(code, 200)
         self.assertEqual(data, [])
 
@@ -205,9 +206,10 @@ class GroupsApiTestMixin(object):
         api = self.mk_api()
         group1 = yield self.create_group(api, name=u'Bob')
         group2 = yield self.create_group(api, name=u'Susan')
-        group_smart = yield self.create_group(api, name=u'Smart',
-                                              query=u'test_query')
-        (code, data) = yield self.request(api, 'GET', '/groups/?stream=true')
+        group_smart = yield self.create_group(
+            api, name=u'Smart', query=u'test_query')
+        (code, data) = yield self.request(
+            api, 'GET', '/groups/?stream=true', parser='json_lines')
         self.assertEqual(code, 200)
         self.assertTrue(group1 in data)
         self.assertTrue(group2 in data)
@@ -334,8 +336,10 @@ class GroupsApiTestMixin(object):
         """
         api = self.mk_api()
         (code, data) = yield self.request(
-            api, 'GET', '/groups/?stream=true&query=foo')
+            api, 'GET', '/groups/?stream=true&query=foo', parser='json_lines')
         self.assertEqual(code, 400)
+        # Parsing `json_lines` returns list
+        data = data[0]
         self.assertEqual(data.get(u'status_code'), 400)
         self.assertEqual(data.get(u'reason'), u'query parameter not supported')
 

@@ -113,7 +113,7 @@ class RiakContactsCollection(object):
         if query is not None:
             raise CollectionUsageError("query parameter not supported")
         contact_list = yield self._get_all_contacts()
-        returnValue([map(contact_to_dict, contact_list)])
+        returnValue(map(contact_to_dict, contact_list))
 
     @inlineCallbacks
     def page(self, cursor, max_results, query):

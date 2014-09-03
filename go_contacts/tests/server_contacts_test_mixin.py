@@ -268,8 +268,11 @@ class ContactsApiTestMixin(object):
         """
         api = self.mk_api()
         (code, data) = yield self.request(
-            api, 'GET', '/contacts/?stream=true&query=foo')
+            api, 'GET', '/contacts/?stream=true&query=foo',
+            parser='json_lines')
         self.assertEqual(code, 400)
+        # `json_lines` returns list of objects
+        data = data[0]
         self.assertEqual(data.get(u'status_code'), 400)
         self.assertEqual(data.get(u'reason'), u'query parameter not supported')
 
@@ -280,7 +283,8 @@ class ContactsApiTestMixin(object):
         no contacts in the contact store.
         """
         api = self.mk_api()
-        (code, data) = yield self.request(api, 'GET', '/contacts/?stream=true')
+        (code, data) = yield self.request(
+            api, 'GET', '/contacts/?stream=true', parser='json_lines')
         self.assertEqual(code, 200)
         self.assertEqual(data, [])
 
@@ -296,7 +300,8 @@ class ContactsApiTestMixin(object):
         contact2 = yield self.create_contact(
             api, name=u"Susan", msisdn=u"+54321")
 
-        (code, data) = yield self.request(api, 'GET', '/contacts/?stream=true')
+        (code, data) = yield self.request(
+            api, 'GET', '/contacts/?stream=true', parser='json_lines')
         self.assertEqual(code, 200)
         self.assertTrue(contact1 in data)
         self.assertTrue(contact2 in data)
