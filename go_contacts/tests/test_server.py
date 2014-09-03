@@ -99,23 +99,13 @@ class TestContactsApi(VumiTestCase, ContactsApiTestMixin,
             yaml.safe_dump(config_dict, fp)
         return tempfile
 
-    def mk_api(self):
+    def mk_api(self, limit=10):
         configfile = self.mk_config({
             "riak_manager": {
                 "bucket_prefix": "test",
             },
-            "max_contacts_per_page": 10,
-            "max_groups_per_page": 10,
-        })
-        return ContactsApi(configfile)
-
-    def mk_api_lim_5(self):
-        configfile = self.mk_config({
-            "riak_manager": {
-                "bucket_prefix": "test",
-            },
-            "max_contacts_per_page": 5,
-            "max_groups_per_page": 5,
+            "max_contacts_per_page": limit,
+            "max_groups_per_page": limit,
         })
         return ContactsApi(configfile)
 
@@ -183,11 +173,8 @@ class TestFakeContactsApi(VumiTestCase, ContactsApiTestMixin):
         self.req_class = Request
         self.api_class = FakeContactsApi
 
-    def mk_api(self):
-        return self.api_class("", "token-1", {})
-
-    def mk_api_lim_5(self):
-        return self.api_class("", "token-1", {}, {}, 5, 5)
+    def mk_api(self, limit=10):
+        return self.api_class("", "token-1", {}, {}, limit, limit)
 
     def request(self, api, method, path, body=None, headers=None, auth=True):
         if headers is None:
@@ -225,23 +212,13 @@ class TestGroupsApi(VumiTestCase, GroupsApiTestMixin):
             yaml.safe_dump(config_dict, fp)
         return tempfile
 
-    def mk_api(self):
+    def mk_api(self, limit=10):
         configfile = self.mk_config({
             "riak_manager": {
                 "bucket_prefix": "test",
             },
-            "max_contacts_per_page": 10,
-            "max_groups_per_page": 10,
-        })
-        return ContactsApi(configfile)
-
-    def mk_api_lim_5(self):
-        configfile = self.mk_config({
-            "riak_manager": {
-                "bucket_prefix": "test",
-            },
-            "max_contacts_per_page": 5,
-            "max_groups_per_page": 5,
+            "max_contacts_per_page": limit,
+            "max_groups_per_page": limit,
         })
         return ContactsApi(configfile)
 
@@ -313,11 +290,8 @@ class TestFakeGroupsApi(VumiTestCase, GroupsApiTestMixin):
         self.req_class = Request
         self.api_class = FakeContactsApi
 
-    def mk_api(self):
-        return self.api_class("", "token-1", {}, {})
-
-    def mk_api_lim_5(self):
-        return self.api_class("", "token-1", {}, {}, 5, 5)
+    def mk_api(self, limit=10):
+        return self.api_class("", "token-1", {}, {}, limit, limit)
 
     def request(self, api, method, path, body=None, headers=None, auth=True):
         if headers is None:

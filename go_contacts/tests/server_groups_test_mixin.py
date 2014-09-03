@@ -270,7 +270,7 @@ class GroupsApiTestMixin(object):
         requests more than this, `groups/?max_results=10`, it should only
         return the maximum of 5 results per page.
         """
-        api = self.mk_api_lim_5()
+        api = self.mk_api(limit=5)
 
         for i in range(10):
             yield self.create_group(api, name=u'%s' % str(i)*5)
@@ -345,7 +345,7 @@ class GroupsApiTestMixin(object):
         In this test the default page limit is 5. If no limit is given, then
         the amount of results in a page should default to 5.
         """
-        api = self.mk_api_lim_5()
+        api = self.mk_api(limit=5)
         for i in range(10):
             yield self.create_group(api, name=u'%s' % str(i)*5)
         (code, data) = yield self.request(api, 'GET', '/groups/')

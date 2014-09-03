@@ -6,7 +6,7 @@ import json
 
 
 class ContactsApiTestMixin(object):
-    def mk_api(self):
+    def mk_api(self, limit):
         raise NotImplementedError()
 
     def request(self, api, method, path, body=None, headers=None, auth=True):
@@ -377,7 +377,7 @@ class ContactsApiTestMixin(object):
         requests more than this, `contacts/?max_results=10`, it should only
         return the maximum of 5 results per page.
         """
-        api = self.mk_api_lim_5()
+        api = self.mk_api(limit=5)
 
         for i in range(10):
             yield self.create_contact(
