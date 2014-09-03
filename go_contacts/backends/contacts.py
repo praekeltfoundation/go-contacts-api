@@ -13,7 +13,7 @@ from go_api.collections import ICollection
 from go_api.collections.errors import (
     CollectionObjectNotFound, CollectionUsageError)
 
-import itertools
+from utils import _paginate, _encode_cursor
 
 
 def contact_to_dict(contact):
@@ -115,22 +115,6 @@ class RiakContactsCollection(object):
         contact_list = yield self._get_all_contacts()
         returnValue([map(contact_to_dict, contact_list)])
 
-    def _paginate(self, contact_list, cursor, max_results):
-        contact_list.sort(key=lambda contact: contact.key)
-        if cursor is not None:
-            contact_list = list(itertools.dropwhile(
-                lambda contact: contact.key <= cursor, contact_list))
-        new_cursor = None
-        if len(contact_list) > max_results:
-            contact_list = contact_list[:max_results]
-            new_cursor = contact_list[-1].key
-        return (contact_list, new_cursor)
-
-    def _encode_cursor(self, cursor):
-        if cursor is not None:
-            cursor = cursor.encode('rot13')
-        return cursor
-
     @inlineCallbacks
     def page(self, cursor, max_results, query):
         """
@@ -161,13 +145,13 @@ class RiakContactsCollection(object):
         max_results = min(max_results, self.max_contacts_per_page)
 
         # Encoding and decoding are the same operation
-        cursor = self._encode_cursor(cursor)
+        cursor = _encode_cursor(cursor)
         contact_list = yield self._get_all_contacts()
 
-        (contact_list, cursor) = self._paginate(
+        (contact_list, cursor) = _paginate(
             contact_list, cursor, max_results)
 
-        cursor = self._encode_cursor(cursor)
+        cursor = _encode_cursor(cursor)
         contact_list = map(contact_to_dict, contact_list)
         returnValue((cursor, contact_list))
 
