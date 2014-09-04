@@ -55,12 +55,15 @@ def _data_to_json(data):
 def _paginate(contact_list, cursor, max_results):
     contact_list.sort(key=lambda contact: contact['key'])
     if cursor is not None:
+        # Encoding and decoding are the same operation
+        cursor = _encode_cursor(cursor)
         contact_list = list(itertools.dropwhile(
             lambda contact: contact['key'] <= cursor, contact_list))
     new_cursor = None
     if len(contact_list) > max_results:
         contact_list = contact_list[:max_results]
         new_cursor = contact_list[-1]['key']
+        new_cursor = _encode_cursor(new_cursor)
     return (contact_list, new_cursor)
 
 
@@ -155,14 +158,11 @@ class FakeContacts(object):
     def get_page_contacts(self, query, cursor, max_results):
         contacts = self.get_all_contacts(query)
 
-        # Encoding and decoding are the same operation
-        cursor = _encode_cursor(cursor)
         max_results = (max_results and int(max_results)) or float('inf')
         max_results = min(max_results, self.max_contacts_per_page)
 
         (contacts, cursor) = _paginate(contacts, cursor, max_results)
 
-        cursor = _encode_cursor(cursor)
         return {u'cursor': cursor, u'data': contacts}
 
     def update_contact(self, contact_key, contact_data):
@@ -257,14 +257,11 @@ class FakeGroups(object):
     def get_page_groups(self, query, cursor, max_results):
         groups = self.get_all_groups(query)
 
-        # Encoding and decoding are the same operation
-        cursor = _encode_cursor(cursor)
         max_results = (max_results and int(max_results)) or float('inf')
         max_results = min(max_results, self.max_groups_per_page)
 
         (groups, cursor) = _paginate(groups, cursor, max_results)
 
-        cursor = _encode_cursor(cursor)
         return {u'cursor': cursor, u'data': groups}
 
     def update_group(self, group_key, group_data):

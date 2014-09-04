@@ -144,14 +144,11 @@ class RiakContactsCollection(object):
         max_results = max_results or float('inf')
         max_results = min(max_results, self.max_contacts_per_page)
 
-        # Encoding and decoding are the same operation
-        cursor = _encode_cursor(cursor)
         contact_list = yield self._get_all_contacts()
 
         (contact_list, cursor) = _paginate(
             contact_list, cursor, max_results)
 
-        cursor = _encode_cursor(cursor)
         contact_list = map(contact_to_dict, contact_list)
         returnValue((cursor, contact_list))
 

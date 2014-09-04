@@ -131,13 +131,10 @@ class RiakGroupsCollection(object):
         max_results = max_results or float('inf')
         max_results = min(max_results, self.max_groups_per_page)
 
-        # Encoding and decoding are the same operation
-        cursor = _encode_cursor(cursor)
         group_list = yield self.contact_store.list_groups()
 
         (group_list, cursor) = _paginate(group_list, cursor, max_results)
 
-        cursor = _encode_cursor(cursor)
         group_list = map(group_to_dict, group_list)
         returnValue((cursor, group_list))
 
