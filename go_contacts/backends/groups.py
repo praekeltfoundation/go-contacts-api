@@ -15,7 +15,7 @@ from go_api.collections.errors import (
 
 from go_contacts.backends.riak import RiakContactsCollection
 
-from utils import _paginate, _encode_cursor
+from utils import _paginate
 
 
 def group_to_dict(group):
