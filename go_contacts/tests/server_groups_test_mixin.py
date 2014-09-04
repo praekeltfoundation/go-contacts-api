@@ -60,7 +60,7 @@ class GroupsApiTestMixin(object):
     @inlineCallbacks
     def test_get_non_existent_group(self):
         api = self.mk_api()
-        (code, data) = yield self.request(api, 'GET', '/groups/bad-key')
+        code, data = yield self.request(api, 'GET', '/groups/bad-key')
         self.assertEqual(code, 404)
         self.assertEqual(data, {
             u'reason': u"Group 'bad-key' not found.",
@@ -98,7 +98,7 @@ class GroupsApiTestMixin(object):
     @inlineCallbacks
     def test_create_invalid_fields(self):
         api = self.mk_api()
-        (code, data) = yield self.request(api, 'POST', '/groups/', json.dumps({
+        code, data = yield self.request(api, 'POST', '/groups/', json.dumps({
             u'unknown_field': u'foo',
             u'not_the_field': u'bar',
         }))
@@ -111,7 +111,7 @@ class GroupsApiTestMixin(object):
     @inlineCallbacks
     def test_create_with_id(self):
         api = self.mk_api()
-        (code, data) = yield self.request(api, 'POST', '/groups/key')
+        code, data = yield self.request(api, 'POST', '/groups/key')
         self.assertEqual(code, 405)
         self.assertEqual(data, {
             u'reason': u'Method Not Allowed',
@@ -131,7 +131,7 @@ class GroupsApiTestMixin(object):
     @inlineCallbacks
     def test_delete_non_existent_group(self):
         api = self.mk_api()
-        (code, data) = yield self.request(api, 'DELETE', '/groups/bad-id')
+        code, data = yield self.request(api, 'DELETE', '/groups/bad-id')
         self.assertEqual(code, 404)
         self.assertEqual(data, {
             u'reason': u"Group 'bad-id' not found.",
@@ -174,8 +174,8 @@ class GroupsApiTestMixin(object):
         api = self.mk_api()
         group = yield self.create_group(api, name=u'Bob')
         group_key = group[u'key']
-        (code, data) = yield self.request(api, 'PUT', '/groups/%s' % group_key,
-                                          json.dumps({u'foo': 'bar'}))
+        code, data = yield self.request(api, 'PUT', '/groups/%s' % group_key,
+                                        json.dumps({u'foo': 'bar'}))
         self.assertEqual(code, 400)
         self.assertEqual(data, {
             u'reason': u'Invalid group fields: foo',
@@ -185,8 +185,8 @@ class GroupsApiTestMixin(object):
     @inlineCallbacks
     def test_update_non_existant_contact(self):
         api = self.mk_api()
-        (code, data) = yield self.request(api, 'PUT', '/groups/bad-id',
-                                          json.dumps({u'name': u'Bob'}))
+        code, data = yield self.request(api, 'PUT', '/groups/bad-id',
+                                        json.dumps({u'name': u'Bob'}))
         self.assertEqual(code, 404)
         self.assertEqual(data, {
             u'reason': u"Group 'bad-id' not found.",
@@ -196,7 +196,8 @@ class GroupsApiTestMixin(object):
     @inlineCallbacks
     def test_stream_all_groups_empty(self):
         api = self.mk_api()
-        (code, data) = yield self.request(api, 'GET', '/groups/?stream=true')
+        code, data = yield self.request(
+            api, 'GET', '/groups/?stream=true', parser='json_lines')
         self.assertEqual(code, 200)
         self.assertEqual(data, [])
 
@@ -205,9 +206,10 @@ class GroupsApiTestMixin(object):
         api = self.mk_api()
         group1 = yield self.create_group(api, name=u'Bob')
         group2 = yield self.create_group(api, name=u'Susan')
-        group_smart = yield self.create_group(api, name=u'Smart',
-                                              query=u'test_query')
-        (code, data) = yield self.request(api, 'GET', '/groups/?stream=true')
+        group_smart = yield self.create_group(
+            api, name=u'Smart', query=u'test_query')
+        code, data = yield self.request(
+            api, 'GET', '/groups/?stream=true', parser='json_lines')
         self.assertEqual(code, 200)
         self.assertTrue(group1 in data)
         self.assertTrue(group2 in data)
@@ -216,7 +218,7 @@ class GroupsApiTestMixin(object):
     @inlineCallbacks
     def test_get_group_empty_page(self):
         api = self.mk_api()
-        (code, data) = yield self.request(api, 'GET', '/groups/')
+        code, data = yield self.request(api, 'GET', '/groups/')
         self.assertEqual(code, 200)
         self.assertEqual(data, {'cursor': None, 'data': []})
 
@@ -229,13 +231,13 @@ class GroupsApiTestMixin(object):
         group_smart = yield self.create_group(api, name=u'Smart',
                                               query=u'test_query')
 
-        (code, data) = yield self.request(api, 'GET', '/groups/?max_results=2')
+        code, data = yield self.request(api, 'GET', '/groups/?max_results=2')
         self.assertEqual(code, 200)
         cursor = data[u'cursor']
         groups = data[u'data']
         self.assertEqual(len(groups), 2)
 
-        (code, data) = yield self.request(
+        code, data = yield self.request(
             api, 'GET',
             '/groups/?max_results=2&cursor=%s' % cursor.encode('ascii'))
         self.assertEqual(code, 200)
@@ -254,7 +256,7 @@ class GroupsApiTestMixin(object):
         group_smart = yield self.create_group(api, name=u'Smart',
                                               query=u'test_query')
 
-        (code, data) = yield self.request(api, 'GET', '/groups/?max_results=2')
+        code, data = yield self.request(api, 'GET', '/groups/?max_results=2')
         self.assertEqual(code, 200)
         cursor = data[u'cursor']
         groups = data[u'data']
@@ -270,12 +272,12 @@ class GroupsApiTestMixin(object):
         requests more than this, `groups/?max_results=10`, it should only
         return the maximum of 5 results per page.
         """
-        api = self.mk_api_lim_5()
+        api = self.mk_api(limit=5)
 
         for i in range(10):
             yield self.create_group(api, name=u'%s' % str(i)*5)
 
-        (code, data) = yield self.request(
+        code, data = yield self.request(
             api, 'GET', '/groups/?max_results=10')
         self.assertEqual(code, 200)
         self.assertEqual(len(data.get('data')), 5)
@@ -289,7 +291,7 @@ class GroupsApiTestMixin(object):
         api = self.mk_api()
         yield self.create_group(api, name=u'Groups 1')
 
-        (code, data) = yield self.request(api, 'GET', '/groups/?cursor=bad-id')
+        code, data = yield self.request(api, 'GET', '/groups/?cursor=bad-id')
         self.assertEqual(code, 200)
         self.assertEqual(data.get(u'cursor'), None)
         self.assertEqual(data.get(u'data'), [])
@@ -306,9 +308,9 @@ class GroupsApiTestMixin(object):
             group = yield self.create_group(api, name=u'%s' % str(i)*5)
             keys.append(group.get('key'))
         keys.sort()
-        (code, deleted_group) = yield self.request(
+        code, deleted_group = yield self.request(
             api, 'DELETE', '/groups/%s' % keys[1])
-        (code, data) = yield self.request(
+        code, data = yield self.request(
             api, 'GET', '/groups/?max_items=2&cursor=%s' %
             deleted_group['key'].encode('rot13'))
         self.assertEqual(code, 200)
@@ -321,7 +323,7 @@ class GroupsApiTestMixin(object):
         thrown, as querys are not yet supported.
         """
         api = self.mk_api()
-        (code, data) = yield self.request(api, 'GET', '/groups/?query=foo')
+        code, data = yield self.request(api, 'GET', '/groups/?query=foo')
         self.assertEqual(code, 400)
         self.assertEqual(data.get(u'status_code'), 400)
         self.assertEqual(data.get(u'reason'), u'query parameter not supported')
@@ -333,7 +335,7 @@ class GroupsApiTestMixin(object):
         thrown, as querys are not yet supported.
         """
         api = self.mk_api()
-        (code, data) = yield self.request(
+        code, data = yield self.request(
             api, 'GET', '/groups/?stream=true&query=foo')
         self.assertEqual(code, 400)
         self.assertEqual(data.get(u'status_code'), 400)
@@ -345,10 +347,10 @@ class GroupsApiTestMixin(object):
         In this test the default page limit is 5. If no limit is given, then
         the amount of results in a page should default to 5.
         """
-        api = self.mk_api_lim_5()
+        api = self.mk_api(limit=5)
         for i in range(10):
             yield self.create_group(api, name=u'%s' % str(i)*5)
-        (code, data) = yield self.request(api, 'GET', '/groups/')
+        code, data = yield self.request(api, 'GET', '/groups/')
         self.assertEqual(len(data.get(u'data')), 5)
 
     @inlineCallbacks
@@ -363,5 +365,5 @@ class GroupsApiTestMixin(object):
             group = yield self.create_group(api, name=u'%s' % str(i)*5)
             keys.append(group.get('key'))
         keys.sort()
-        (code, data) = yield self.request(api, 'GET', '/groups/?max_results=2')
+        code, data = yield self.request(api, 'GET', '/groups/?max_results=2')
         self.assertEqual(data.get('cursor'), keys[1].encode('rot13'))

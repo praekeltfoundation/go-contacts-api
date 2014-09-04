@@ -17,11 +17,9 @@ class ContactsApiConfig(Config):
     This is the configuration for the Contacts API.
     """
     max_groups_per_page = ConfigInt(
-        "Maximum number of groups returned per page",
-        required=True)
+        "Maximum number of groups returned per page", required=True)
     max_contacts_per_page = ConfigInt(
-        "Maximum number of contacts returned per page",
-        required=True)
+        "Maximum number of contacts returned per page", required=True)
     riak_manager = ConfigDict(
         "The configuration parameters for the Riak Manager", required=True)
 
@@ -43,8 +41,7 @@ class ContactsApi(ApiApplication):
         try:
             return self.riak_manager
         except AttributeError:
-            self.riak_manager = TxRiakManager.from_config(
-                config.riak_manager)
+            self.riak_manager = TxRiakManager.from_config(config.riak_manager)
             return self.riak_manager
 
     def _setup_contacts_backend(self, config):

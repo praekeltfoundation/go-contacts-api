@@ -15,7 +15,7 @@ from go_api.collections.errors import (
 
 from go_contacts.backends.riak import RiakContactsCollection
 
-import itertools
+from utils import _paginate
 
 
 def group_to_dict(group):
@@ -97,25 +97,15 @@ class RiakGroupsCollection(object):
         """
         if query is not None:
             raise CollectionUsageError("query parameter not supported")
-        group_list = yield self.contact_store.list_groups()
-        group_list = group_list or []
-        returnValue([map(group_to_dict, group_list)])
 
-    def _paginate(self, group_list, cursor, max_results):
-        group_list.sort(key=lambda group: group.key)
-        if cursor is not None:
-            group_list = list(itertools.dropwhile(
-                lambda group: group.key <= cursor, group_list))
-        new_cursor = None
-        if len(group_list) > max_results:
-            group_list = group_list[:max_results]
-            new_cursor = group_list[-1].key
-        return (group_list, new_cursor)
-
-    def _encode_cursor(self, cursor):
-        if cursor is not None:
-            cursor = cursor.encode('rot13')
-        return cursor
+        group_keys = yield self.contact_store.list_keys(
+            self.contact_store.groups)
+        group_list = []
+        for key in group_keys:
+            group = self.contact_store.get_group(key)
+            group.addCallback(group_to_dict)
+            group_list.append(group)
+        returnValue(group_list)
 
     @inlineCallbacks
     def page(self, cursor, max_results, query):
@@ -147,14 +137,14 @@ class RiakGroupsCollection(object):
         max_results = max_results or float('inf')
         max_results = min(max_results, self.max_groups_per_page)
 
-        # Encoding and decoding are the same operation
-        cursor = self._encode_cursor(cursor)
-        group_list = yield self.contact_store.list_groups()
-
-        (group_list, cursor) = self._paginate(group_list, cursor, max_results)
-
-        cursor = self._encode_cursor(cursor)
-        group_list = map(group_to_dict, group_list)
+        group_keys = yield self.contact_store.list_keys(
+            self.contact_store.groups)
+        group_keys, cursor = _paginate(group_keys, cursor, max_results)
+        group_list = []
+        for key in group_keys:
+            group = yield self.contact_store.get_group(key)
+            group = group_to_dict(group)
+            group_list.append(group)
         returnValue((cursor, group_list))
 
     @inlineCallbacks

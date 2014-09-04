@@ -13,6 +13,8 @@ from go_api.collections import ICollection
 from go_api.collections.errors import (
     CollectionObjectNotFound, CollectionUsageError)
 
+from utils import _paginate
+
 
 def contact_to_dict(contact):
     """
@@ -47,6 +49,7 @@ class RiakContactsBackend(object):
 class RiakContactsCollection(object):
     def __init__(self, contact_store, max_contacts_per_page):
         self.contact_store = contact_store
+        self.max_contacts_per_page = max_contacts_per_page
 
     @staticmethod
     def _pick_fields(data, keys):
@@ -86,6 +89,7 @@ class RiakContactsCollection(object):
         """
         raise NotImplementedError()
 
+    @inlineCallbacks
     def stream(self, query):
         """
         Return an iterable over all objects in the collection. The iterable may
@@ -96,8 +100,18 @@ class RiakContactsCollection(object):
             Search term requested through the API. Defaults to ``None`` if no
             search term was requested.
         """
-        raise NotImplementedError()
+        if query is not None:
+            raise CollectionUsageError("query parameter not supported")
 
+        contact_keys = yield self.contact_store.list_contacts()
+        contact_list = []
+        for key in contact_keys:
+            contact = self.contact_store.get_contact_by_key(key)
+            contact.addCallback(contact_to_dict)
+            contact_list.append(contact)
+        returnValue(contact_list)
+
+    @inlineCallbacks
     def page(self, cursor, max_results, query):
         """
         Generages a page which contains a subset of the objects in the
@@ -119,7 +133,21 @@ class RiakContactsCollection(object):
             list of all the objects within the page.
         :rtype: tuple
         """
-        raise NotImplementedError()
+        # TODO: Use riak pagination instead of fake pagination
+        if query is not None:
+            raise CollectionUsageError("query parameter not supported")
+
+        max_results = max_results or float('inf')
+        max_results = min(max_results, self.max_contacts_per_page)
+
+        contact_keys = yield self.contact_store.list_contacts()
+        contact_keys, cursor = _paginate(contact_keys, cursor, max_results)
+        contact_list = []
+        for key in contact_keys:
+            contact = yield self.contact_store.get_contact_by_key(key)
+            contact = contact_to_dict(contact)
+            contact_list.append(contact)
+        returnValue((cursor, contact_list))
 
     @inlineCallbacks
     def get(self, object_id):
