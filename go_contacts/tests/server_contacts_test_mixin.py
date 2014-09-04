@@ -79,7 +79,7 @@ class ContactsApiTestMixin(object):
     @inlineCallbacks
     def test_get_non_existent_contact(self):
         api = self.mk_api()
-        (code, data) = yield self.request(api, "GET", "/contacts/bad-id")
+        code, data = yield self.request(api, "GET", "/contacts/bad-id")
         self.assertEqual(code, 404)
         self.assertEqual(data, {
             u"status_code": 404,
@@ -135,7 +135,7 @@ class ContactsApiTestMixin(object):
     @inlineCallbacks
     def test_create_invalid_fields(self):
         api = self.mk_api()
-        (code, data) = yield self.request(
+        code, data = yield self.request(
             api, "POST", "/contacts/", json.dumps({
                 u"unknown_field": u"foo",
                 u"not_the_field": u"bar",
@@ -267,7 +267,7 @@ class ContactsApiTestMixin(object):
         thrown, as queries are not yet supported.
         """
         api = self.mk_api()
-        (code, data) = yield self.request(
+        code, data = yield self.request(
             api, 'GET', '/contacts/?stream=true&query=foo')
         self.assertEqual(code, 400)
         self.assertEqual(data.get(u'status_code'), 400)
@@ -280,7 +280,7 @@ class ContactsApiTestMixin(object):
         no contacts in the contact store.
         """
         api = self.mk_api()
-        (code, data) = yield self.request(
+        code, data = yield self.request(
             api, 'GET', '/contacts/?stream=true', parser='json_lines')
         self.assertEqual(code, 200)
         self.assertEqual(data, [])
@@ -297,7 +297,7 @@ class ContactsApiTestMixin(object):
         contact2 = yield self.create_contact(
             api, name=u"Susan", msisdn=u"+54321")
 
-        (code, data) = yield self.request(
+        code, data = yield self.request(
             api, 'GET', '/contacts/?stream=true', parser='json_lines')
         self.assertEqual(code, 200)
         self.assertTrue(contact1 in data)
@@ -310,7 +310,7 @@ class ContactsApiTestMixin(object):
         contacts in the contact store.
         """
         api = self.mk_api()
-        (code, data) = yield self.request(api, 'GET', '/contacts/')
+        code, data = yield self.request(api, 'GET', '/contacts/')
         self.assertEqual(code, 200)
         self.assertEqual(data, {'cursor': None, 'data': []})
 
@@ -331,14 +331,13 @@ class ContactsApiTestMixin(object):
         contact3 = yield self.create_contact(
             api, name=u"Foo", msisdn=u"+314159")
 
-        (code, data) = yield self.request(
-            api, 'GET', '/contacts/?max_results=2')
+        code, data = yield self.request(api, 'GET', '/contacts/?max_results=2')
         self.assertEqual(code, 200)
         cursor = data[u'cursor']
         contacts = data[u'data']
         self.assertEqual(len(contacts), 2)
 
-        (code, data) = yield self.request(
+        code, data = yield self.request(
             api, 'GET',
             '/contacts/?max_results=2&cursor=%s' % cursor.encode('ascii'))
         self.assertEqual(code, 200)
@@ -362,7 +361,7 @@ class ContactsApiTestMixin(object):
         contact2 = yield self.create_contact(
             api, name=u"Susan", msisdn=u"+54321")
 
-        (code, data) = yield self.request(
+        code, data = yield self.request(
             api, 'GET', '/contacts/?max_results=2')
         self.assertEqual(code, 200)
         cursor = data[u'cursor']
@@ -385,7 +384,7 @@ class ContactsApiTestMixin(object):
             yield self.create_contact(
                 api, name=u'%s' % str(i)*5, msisdn=u'+%s' % str(i)*5)
 
-        (code, data) = yield self.request(
+        code, data = yield self.request(
             api, 'GET', '/contacts/?max_results=10')
         self.assertEqual(code, 200)
         self.assertEqual(len(data.get('data')), 5)
@@ -399,7 +398,7 @@ class ContactsApiTestMixin(object):
         api = self.mk_api()
         yield self.create_contact(api, name=u"Bob", msisdn=u"+12345")
 
-        (code, data) = yield self.request(
+        code, data = yield self.request(
             api, 'GET', '/contacts/?cursor=bad-id')
         self.assertEqual(code, 200)
         self.assertEqual(data.get(u'cursor'), None)
@@ -418,9 +417,9 @@ class ContactsApiTestMixin(object):
                 api, name=u'%s' % str(i)*5, msisdn=u'+%s' % str(i)*5)
             keys.append(contact.get('key'))
         keys.sort()
-        (code, deleted_contact) = yield self.request(
+        code, deleted_contact = yield self.request(
             api, 'DELETE', '/contacts/%s' % keys[1])
-        (code, data) = yield self.request(
+        code, data = yield self.request(
             api, 'GET', '/contacts/?max_items=2&cursor=%s' %
             deleted_contact['key'].encode('rot13'))
         self.assertEqual(code, 200)
@@ -433,7 +432,7 @@ class ContactsApiTestMixin(object):
         thrown, as querys are not yet supported.
         """
         api = self.mk_api()
-        (code, data) = yield self.request(api, 'GET', '/contacts/?query=foo')
+        code, data = yield self.request(api, 'GET', '/contacts/?query=foo')
         self.assertEqual(code, 400)
         self.assertEqual(data.get(u'status_code'), 400)
         self.assertEqual(data.get(u'reason'), u'query parameter not supported')
@@ -451,6 +450,6 @@ class ContactsApiTestMixin(object):
                 api, name=u'%s' % str(i)*5, msisdn=u'+%s' % str(i)*5)
             keys.append(contact.get('key'))
         keys.sort()
-        (code, data) = yield self.request(
+        code, data = yield self.request(
             api, 'GET', '/contacts/?max_results=2')
         self.assertEqual(data.get('cursor'), keys[1].encode('rot13'))

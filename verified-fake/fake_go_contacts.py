@@ -160,7 +160,7 @@ class FakeContacts(object):
         max_results = (max_results and int(max_results)) or float('inf')
         max_results = min(max_results, self.max_contacts_per_page)
 
-        (contacts, cursor) = _paginate(contacts, cursor, max_results)
+        contacts, cursor = _paginate(contacts, cursor, max_results)
 
         return {u'cursor': cursor, u'data': contacts}
 
@@ -259,7 +259,7 @@ class FakeGroups(object):
         max_results = (max_results and int(max_results)) or float('inf')
         max_results = min(max_results, self.max_groups_per_page)
 
-        (groups, cursor) = _paginate(groups, cursor, max_results)
+        groups, cursor = _paginate(groups, cursor, max_results)
 
         return {u'cursor': cursor, u'data': groups}
 

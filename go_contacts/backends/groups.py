@@ -139,7 +139,7 @@ class RiakGroupsCollection(object):
 
         group_keys = yield self.contact_store.list_keys(
             self.contact_store.groups)
-        (group_keys, cursor) = _paginate(group_keys, cursor, max_results)
+        group_keys, cursor = _paginate(group_keys, cursor, max_results)
         group_list = []
         for key in group_keys:
             group = yield self.contact_store.get_group(key)

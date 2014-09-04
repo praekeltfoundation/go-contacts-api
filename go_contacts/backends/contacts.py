@@ -141,7 +141,7 @@ class RiakContactsCollection(object):
         max_results = min(max_results, self.max_contacts_per_page)
 
         contact_keys = yield self.contact_store.list_contacts()
-        (contact_keys, cursor) = _paginate(contact_keys, cursor, max_results)
+        contact_keys, cursor = _paginate(contact_keys, cursor, max_results)
         contact_list = []
         for key in contact_keys:
             contact = yield self.contact_store.get_contact_by_key(key)
