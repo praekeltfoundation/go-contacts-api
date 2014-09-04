@@ -97,9 +97,15 @@ class RiakGroupsCollection(object):
         """
         if query is not None:
             raise CollectionUsageError("query parameter not supported")
-        group_list = yield self.contact_store.list_groups()
-        group_list = group_list or []
-        returnValue(map(group_to_dict, group_list))
+
+        group_keys = yield self.contact_store.list_keys(
+            self.contact_store.groups)
+        group_list = []
+        for key in group_keys:
+            group = self.contact_store.get_group(key)
+            group.addCallback(group_to_dict)
+            group_list.append(group)
+        returnValue(group_list)
 
     @inlineCallbacks
     def page(self, cursor, max_results, query):
@@ -131,11 +137,14 @@ class RiakGroupsCollection(object):
         max_results = max_results or float('inf')
         max_results = min(max_results, self.max_groups_per_page)
 
-        group_list = yield self.contact_store.list_groups()
-
-        (group_list, cursor) = _paginate(group_list, cursor, max_results)
-
-        group_list = map(group_to_dict, group_list)
+        group_keys = yield self.contact_store.list_keys(
+            self.contact_store.groups)
+        (group_keys, cursor) = _paginate(group_keys, cursor, max_results)
+        group_list = []
+        for key in group_keys:
+            group = yield self.contact_store.get_group(key)
+            group = group_to_dict(group)
+            group_list.append(group)
         returnValue((cursor, group_list))
 
     @inlineCallbacks
