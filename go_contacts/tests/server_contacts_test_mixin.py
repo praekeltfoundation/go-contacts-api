@@ -268,11 +268,8 @@ class ContactsApiTestMixin(object):
         """
         api = self.mk_api()
         (code, data) = yield self.request(
-            api, 'GET', '/contacts/?stream=true&query=foo',
-            parser='json_lines')
+            api, 'GET', '/contacts/?stream=true&query=foo')
         self.assertEqual(code, 400)
-        # `json_lines` returns list of objects
-        data = data[0]
         self.assertEqual(data.get(u'status_code'), 400)
         self.assertEqual(data.get(u'reason'), u'query parameter not supported')
 

@@ -360,8 +360,4 @@ class FakeContactsApi(object):
         return auth_header == "Bearer %s" % (self.auth_token,)
 
     def build_response(self, content, code=200, headers=None, parser=None):
-        if parser == 'json_lines':
-            # To emulate that single items are returned as a singleton list
-            if not isinstance(content, list):
-                content = [content]
         return Response(code, headers, content)
