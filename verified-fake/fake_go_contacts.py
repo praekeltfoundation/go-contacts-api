@@ -9,12 +9,11 @@ class Request(object):
     Representation of an HTTP request.
     """
 
-    def __init__(self, method, path, body=None, headers=None, parser=None):
+    def __init__(self, method, path, body=None, headers=None):
         self.method = method
         self.path = path
         self.body = body
         self.headers = headers if headers is not None else {}
-        self.parser = parser
 
 
 class Response(object):
@@ -349,15 +348,13 @@ class FakeContactsApi(object):
 
         try:
             return self.build_response(
-                handler.request(request, contact_key, parse_qs(url.query)),
-                parser=request.parser)
+                handler.request(request, contact_key, parse_qs(url.query)))
         except FakeContactsError as err:
-            return self.build_response(
-                err.data, err.code, parser=request.parser)
+            return self.build_response(err.data, err.code)
 
     def check_auth(self, request):
         auth_header = request.headers.get("Authorization")
         return auth_header == "Bearer %s" % (self.auth_token,)
 
-    def build_response(self, content, code=200, headers=None, parser=None):
+    def build_response(self, content, code=200, headers=None):
         return Response(code, headers, content)

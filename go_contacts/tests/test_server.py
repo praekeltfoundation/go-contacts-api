@@ -188,7 +188,7 @@ class TestFakeContactsApi(VumiTestCase, ContactsApiTestMixin):
         if auth:
             headers["Authorization"] = "Bearer token-1"
         resp = api.handle_request(self.req_class(
-            method, path, body=body, headers=headers, parser=parser))
+            method, path, body=body, headers=headers))
         return resp.code, resp.data
 
     def create_contact(self, api, **contact_data):
@@ -313,7 +313,7 @@ class TestFakeGroupsApi(VumiTestCase, GroupsApiTestMixin):
         if auth:
             headers["Authorization"] = "Bearer token-1"
         resp = api.handle_request(self.req_class(
-            method, path, body=body, headers=headers, parser=parser))
+            method, path, body=body, headers=headers))
         return resp.code, resp.data
 
     def create_group(self, api, **group_data):
