@@ -156,21 +156,22 @@ API Methods
         HTTP/1.1 404 Not Found
         {"status_code": 404, "reason": "Contact 'bad-key' not found."}
 
+
 .. http:get:: /(str:collection)/
 
     Returns all the objects in the collection, either streamed or paginated.
 
     :query query:
         Not implemented.
-    :query stream:
-        Either ``true`` or ``false``. If ``true``, all the objects are
+    :query boolean stream:
+        If ``true``, all the objects are
         streamed, if ``false``, the objects are sent in pages. Defaults to
         ``false``.
-    :query max_results:
+    :query int max_results:
         If ``stream`` is false, limits the number of objects in a page.
         Defaults to server config limit. If it exceeds server config limit, the
         server config limit will be used instead.
-    :query cursor:
+    :query string cursor:
         If ``stream`` is false, selects which page should be returned. Defaults
         to ``None``. If ``None``, the first page will be returned.
 
@@ -184,6 +185,18 @@ API Methods
     :statuscode 400: invalid query parameter usage
     :statuscode 401: no auth token
     :statuscode 403: bad auth token
+
+    **Pagination:**
+
+    :>json string cursor:
+        Cursor to send to get the next page.
+    :>json list data:
+        List of collection objects within the page.
+
+    **Streaming:**
+
+    :>json list:
+        New line separated list of JSON objects in the collection.
 
     **Example request (paginated)**:
 
@@ -215,3 +228,42 @@ API Methods
         HTTP/1.1 200 OK
         {..., "name": "bar", ...}
         {..., "name": "foo", ...}
+
+
+.. http:post:: /(str:collection)/
+
+    Creates a single object in the collection.
+
+    :reqheader Authorization: OAuth bearer token.
+
+    :param str collection:
+        The collection that the user would like to access (i.e. ``contacts`` or
+        ``groups``)    
+
+    :<json object: The data that the new object should contain.
+
+    :statuscode 200: no error
+    :statuscode 400: invalid JSON data
+    :statuscode 401: no auth token
+    :statuscode 403: bad auth token
+
+    :>json object: The object that was created.
+
+    **Example request**:
+
+    .. sourcecode:: http
+
+        POST /api/contacts/ HTTP/1.1
+        Host: example.com
+        Authorization: Bearer auth-token
+        Content-Length: 35
+
+        {"name": "Foo", "msisdn": "+12345"}
+
+    **Example response**:
+
+    .. sourcecode:: http
+
+        HTTP/1.1 200 OK
+        {..., "msisdn": "+12345", "name": "Foo", ...}
+
