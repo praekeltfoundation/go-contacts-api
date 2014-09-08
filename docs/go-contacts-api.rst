@@ -82,7 +82,7 @@ for the error.
 API Authentication
 ------------------
 
-Authentication is done using an OAuth 2.0 bearer token.
+Authentication is done using an OAuth bearer token.
 
 **Example request**:
 
@@ -121,7 +121,7 @@ API Methods
 
     Get a single object from the collection. Returned as JSON.
 
-    :reqheader Authorization: OAuth 2.0 bearer token.
+    :reqheader Authorization: OAuth bearer token.
 
     :param str collection:
         The collection that the user would like to access (i.e. ``contacts`` or
@@ -155,3 +155,63 @@ API Methods
 
         HTTP/1.1 404 Not Found
         {"status_code": 404, "reason": "Contact 'bad-key' not found."}
+
+.. http:get:: /(str:collection)/
+
+    Returns all the objects in the collection, either streamed or paginated.
+
+    :query query:
+        Not implemented.
+    :query stream:
+        Either ``true`` or ``false``. If ``true``, all the objects are
+        streamed, if ``false``, the objects are sent in pages. Defaults to
+        ``false``.
+    :query max_results:
+        If ``stream`` is false, limits the number of objects in a page.
+        Defaults to server config limit. If it exceeds server config limit, the
+        server config limit will be used instead.
+    :query cursor:
+        If ``stream`` is false, selects which page should be returned. Defaults
+        to ``None``. If ``None``, the first page will be returned.
+
+    :reqheader Authorization: OAuth bearer token.
+
+    :param str collection:
+        The collection that the user would like to access (i.e. ``contacts`` or
+        ``groups``)
+
+    :statuscode 200: no error
+    :statuscode 400: invalid query parameter usage
+    :statuscode 401: no auth token
+    :statuscode 403: bad auth token
+
+    **Example request (paginated)**:
+
+    .. sourcecode:: http
+
+        GET /api/contacts/?stream=false&max_results=1&cursor=92802q70r52s4717o4ps413s12po5o63 HTTP/1.1
+        Host: example.com
+        Authorization: Bearer auth-token
+
+    **Example response (paginated)**:
+
+    .. sourcecode:: http
+
+        HTTP/1.1 200 OK
+        {"cursor": ..., "data": [{..., "name": "foo", ...}]}
+
+    **Example request (streaming)**:
+
+    .. sourcecode:: http
+
+        GET /api/contacts/?stream=true HTTP/1.1
+        Host: example.com
+        Authorization: Bearer auth-token
+
+    **Example response (streaming)**:
+
+    .. sourcecode:: http
+
+        HTTP/1.1 200 OK
+        {..., "name": "bar", ...}
+        {..., "name": "foo", ...}
