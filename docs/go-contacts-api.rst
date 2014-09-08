@@ -32,6 +32,50 @@ Contents
 Response Format Overview
 ------------------------
 
+In the case of modifying a single object, that object will be returned
+formatted as JSON.
+
+**Example response (single object request)**:
+
+.. sourcecode:: http
+
+    HTTP/1.1 200 OK
+    {... "name": "foo" ...}
+
+In the case of fetching multiple objects, there are two methods that can be
+used. The first method, pagination, separates the data into pages. The JSON
+object that is returned contains a ``cursor`` field, containing a cursor to
+the next page, and a ``data`` field, which contains the list of objects.
+
+**Example response (paginate request)**:
+
+.. sourcecode:: http
+
+    HTTP/1.1 200 OK
+    {"cursor": ..., "data": [{...},{...},...]}
+
+The second method, streaming, returns one JSON object per line.
+
+**Example response (streaming request)**:
+
+.. sourcecode:: http
+
+    HTTP/1.1 200 OK
+    {... "name": "foo" ...}
+    {... "name": "bar" ...}
+    ...
+
+Errors are returned with the relevant HTTP error code and a json object,
+containing ``status_code``, the HTTP status code, and ``reason``, the reason
+for the error.
+
+**Example response (error response)**:
+
+.. sourcecode:: http
+
+    HTTP/1.1 404 Not Found
+    {"status_code": 404, "reason": "Group 'bad-group' not found."}
+
 
 .. _api-authentication:
 
