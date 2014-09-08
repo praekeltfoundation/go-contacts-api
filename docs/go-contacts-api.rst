@@ -119,10 +119,39 @@ API Methods
 
 .. http:get:: /(str:collection)/(str:object_key)
 
-    Get a single object from the collection.
+    Get a single object from the collection. Returned as JSON.
+
+    :reqheader Authorization: OAuth 2.0 bearer token.
 
     :param str collection:
         The collection that the user would like to access (i.e. ``contacts`` or
         ``groups``)
     :param str object_key:
         The key of the object that the user would like to retrieve.
+
+    :statuscode 200: no error
+    :statuscode 401: no auth token
+    :statuscode 403: bad auth token
+    :statuscode 404: contact for given key not found
+
+    **Example request**:
+
+    .. sourcecode:: http
+
+        GET /api/contacts/b1498401c05c4b3aa6929204aa1e955c HTTP/1.1
+        Host: example.com
+        Authorization: Bearer auth-token
+
+    **Example response (success)**:
+
+    .. sourcecode:: http
+
+        HTTP/1.1 200 OK
+        {..., "key": "b1498401c05c4b3aa6929204aa1e955c", ...}
+
+    **Example response (object not found)**:
+
+    .. sourcecode:: http
+
+        HTTP/1.1 404 Not Found
+        {"status_code": 404, "reason": "Contact 'bad-key' not found."}
