@@ -132,8 +132,8 @@ the collections when creating and updating objects.
     :json string msisdn:
         The MSISDN of the contact. Required to be non-null.
     :json list groups:
-        A list of the group key for the groups that this contact belongs to.
-        Defaults to an empty list
+        A list of the group keys for the groups that this contact belongs to.
+        Defaults to an empty list.
     :json string twitter_handle:
         The Twitter handle of the contact. Defaults to ``null``.
     :json string bbm_pin:
