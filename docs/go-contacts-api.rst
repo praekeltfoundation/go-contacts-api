@@ -127,70 +127,78 @@ the collections when creating and updating objects.
 
 **Contacts**:
 
-:json string msisdn:
-    The MSISDN of the contact. Required to be non-null.
-:json list groups:
-    A list of the group key for the groups that this contact belongs to.
-    Defaults to an empty list
-:json string twitter_handle:
-    The Twitter handle of the contact. Defaults to ``null``.
-:json string bbm_pin:
-    The BBM pin of the contact. Defaults to ``null``.
-:json object extra:
-    An object of extra information stored about the contact. Defaults to ``{}``.
-:json string created_at:
-    The timestamp of when the contact was created. Defaults to the current date
-    and time.
-:json string mxit_id:
-    The MXIT ID of the contact. Defaults to ``null``.
-:json string dob:
-    The date of birth of the contact. Defaults to ``null``.
-:json string key:
-    The unique key used to identify the contact. Defaults to an automatically
-    generated UUID4 key.
-:json string facebook_id:
-    The Facebook ID of the contact. Defaults to ``null``.
-:json string name:
-    The name of the contact. Defaults to null.
-:json string surname:
-    The surname of the contact. Defaults to ``null``.
-:json string wechat_id:
-    The WeChat ID of the contact. Defaults to ``null``.
-:json string email_address:
-    The email address of the contact. Defaults to ``null``.
-:json string gtalk_id:
-    The GTalk ID of the contact. Defaults to ``null``.
-:json object subsription:
-    An object storing the subscription information for the contact. Defaults
-    to ``null``.
+.. http:any:: /contacts/
+
+    :json string msisdn:
+        The MSISDN of the contact. Required to be non-null.
+    :json list groups:
+        A list of the group key for the groups that this contact belongs to.
+        Defaults to an empty list
+    :json string twitter_handle:
+        The Twitter handle of the contact. Defaults to ``null``.
+    :json string bbm_pin:
+        The BBM pin of the contact. Defaults to ``null``.
+    :json object extra:
+        An object of extra information stored about the contact. Defaults to ``{}``.
+    :json string created_at:
+        The timestamp of when the contact was created. Defaults to the current date
+        and time.
+    :json string mxit_id:
+        The MXIT ID of the contact. Defaults to ``null``.
+    :json string dob:
+        The date of birth of the contact. Defaults to ``null``.
+    :json string key:
+        The unique key used to identify the contact. Defaults to an automatically
+        generated UUID4 key.
+    :json string facebook_id:
+        The Facebook ID of the contact. Defaults to ``null``.
+    :json string name:
+        The name of the contact. Defaults to null.
+    :json string surname:
+        The surname of the contact. Defaults to ``null``.
+    :json string wechat_id:
+        The WeChat ID of the contact. Defaults to ``null``.
+    :json string email_address:
+        The email address of the contact. Defaults to ``null``.
+    :json string gtalk_id:
+        The GTalk ID of the contact. Defaults to ``null``.
+    :json object subsription:
+        An object storing the subscription information for the contact. Defaults
+        to ``null``.
 
 **Immutable contact fields**:
 
-:json string $VERSION:
-    Represents the version of the contact.
-:json string user_account:
-    The user account that the contact is linked to.
+.. http:any:: /contacts/
+
+    :json string $VERSION:
+        Represents the version of the contact.
+    :json string user_account:
+        The user account that the contact is linked to.
 
 **Groups**
 
-:json string name:
-    The name of the group. Required to be non-null.
-:json string key:
-    The unique key used to identify the group. Defaults to an automatically
-    generated UUID4 key.
-:json string query:
-    The string representing the query for a smart group. Defaults to ``null``
-    representing a static group.
-:json string created_at:
-    The timestamp of when the group was created. Defaults to the current date
-    and time.
+.. http:any:: /groups/
+
+    :json string name:
+        The name of the group. Required to be non-null.
+    :json string key:
+        The unique key used to identify the group. Defaults to an automatically
+        generated UUID4 key.
+    :json string query:
+        The string representing the query for a smart group. Defaults to ``null``
+        representing a static group.
+    :json string created_at:
+        The timestamp of when the group was created. Defaults to the current date
+        and time.
 
 **Immutable group fields**:
 
-:json string $VERSION:
-    Represents the version of the group.
-:json string user_account:
-    The user account that the group is linked to.
+.. http:any:: /groups/
+
+    :json string $VERSION:
+        Represents the version of the group.
+    :json string user_account:
+        The user account that the group is linked to.
 
 
 .. _api-methods:
