@@ -22,9 +22,14 @@ Contents
 --------
 * :ref:`response-format-overview`
 * :ref:`api-authentication`
+* :ref:`json-fields`
 * :ref:`api-methods`
 
     * :http:get:`/(str:collection)/(str:object_key)`
+    * :http:get:`/(str:collection)/`
+    * :http:post:`/(str:collection)/`
+    * :http:put:`/(str:collection)/(str:object_key)`
+    * :http:delete:`/(str:collection)/(str:object_key)`
 
 
 .. _response-format-overview:
@@ -112,6 +117,82 @@ Authentication is done using an OAuth bearer token.
     HTTP/1.1 401 Unauthorized
 
 
+.. _json-fields:
+
+JSON Fields
+-----------
+
+The following section lists the valid fields that can be specified for each of
+the collections when creating and updating objects.
+
+**Contacts**:
+
+:json string msisdn:
+    The MSISDN of the contact. Required to be non-null.
+:json list groups:
+    A list of the group key for the groups that this contact belongs to.
+    Defaults to an empty list
+:json string twitter_handle:
+    The Twitter handle of the contact. Defaults to ``null``.
+:json string bbm_pin:
+    The BBM pin of the contact. Defaults to ``null``.
+:json object extra:
+    An object of extra information stored about the contact. Defaults to ``{}``.
+:json string created_at:
+    The timestamp of when the contact was created. Defaults to the current date
+    and time.
+:json string mxit_id:
+    The MXIT ID of the contact. Defaults to ``null``.
+:json string dob:
+    The date of birth of the contact. Defaults to ``null``.
+:json string key:
+    The unique key used to identify the contact. Defaults to an automatically
+    generated UUID4 key.
+:json string facebook_id:
+    The Facebook ID of the contact. Defaults to ``null``.
+:json string name:
+    The name of the contact. Defaults to null.
+:json string surname:
+    The surname of the contact. Defaults to ``null``.
+:json string wechat_id:
+    The WeChat ID of the contact. Defaults to ``null``.
+:json string email_address:
+    The email address of the contact. Defaults to ``null``.
+:json string gtalk_id:
+    The GTalk ID of the contact. Defaults to ``null``.
+:json object subsription:
+    An object storing the subscription information for the contact. Defaults
+    to ``null``.
+
+**Immutable contact fields**:
+
+:json string $VERSION:
+    Represents the version of the contact.
+:json string user_account:
+    The user account that the contact is linked to.
+
+**Groups**
+
+:json string name:
+    The name of the group. Required to be non-null.
+:json string key:
+    The unique key used to identify the group. Defaults to an automatically
+    generated UUID4 key.
+:json string query:
+    The string representing the query for a smart group. Defaults to ``null``
+    representing a static group.
+:json string created_at:
+    The timestamp of when the group was created. Defaults to the current date
+    and time.
+
+**Immutable group fields**:
+
+:json string $VERSION:
+    Represents the version of the group.
+:json string user_account:
+    The user account that the group is linked to.
+
+
 .. _api-methods:
 
 API Methods
@@ -147,6 +228,12 @@ API Methods
     .. sourcecode:: http
 
         HTTP/1.1 200 OK
+        Server: ...
+        Date: ...
+        Content-Type: text/html; charset=UTF-8
+        Content-Length: ...
+        Connection: keep-alive
+
         {..., "key": "b1498401c05c4b3aa6929204aa1e955c", ...}
 
     **Example response (object not found)**:
@@ -154,6 +241,12 @@ API Methods
     .. sourcecode:: http
 
         HTTP/1.1 404 Not Found
+        Server: ...
+        Date: ...
+        Content-Type: application/json; charset=utf-8
+        Content-Length: 62
+        Connection: keep-alive
+
         {"status_code": 404, "reason": "Contact 'bad-key' not found."}
 
 
@@ -211,7 +304,14 @@ API Methods
     .. sourcecode:: http
 
         HTTP/1.1 200 OK
+        Server: ...
+        Date: ...
+        Content-Type: text/html; charset=UTF-8
+        Content-Length: ...
+        Connection: keep-alive
+
         {"cursor": ..., "data": [{..., "name": "foo", ...}]}
+
 
     **Example request (streaming)**:
 
@@ -226,6 +326,11 @@ API Methods
     .. sourcecode:: http
 
         HTTP/1.1 200 OK
+        Server: ...
+        Date: ...
+        Content-Type: text/html; charset=UTF-8
+        Connection: keep-alive
+
         {..., "name": "bar", ...}
         {..., "name": "foo", ...}
 
@@ -268,7 +373,7 @@ API Methods
         Server: ...
         Date: ...
         Content-Type: text/html; charset=UTF-8
-        Content-Length: 374
+        Content-Length: ...
         Connection: keep-alive
 
         {..., "msisdn": "+12345", "name": "Foo", ...}
@@ -315,7 +420,7 @@ API Methods
         Server: ...
         Date: ...
         Content-Type: text/html; charset=UTF-8
-        Content-Length: 374
+        Content-Length: ...
         Connection: keep-alive
 
         {..., "msisdn": "+12345", "name": "Foo", ...}
