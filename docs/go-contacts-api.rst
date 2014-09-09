@@ -265,5 +265,98 @@ API Methods
     .. sourcecode:: http
 
         HTTP/1.1 200 OK
+        Server: ...
+        Date: ...
+        Content-Type: text/html; charset=UTF-8
+        Content-Length: 374
+        Connection: keep-alive
+
         {..., "msisdn": "+12345", "name": "Foo", ...}
 
+
+.. http:put:: /(str:collection)/(str:object_key)
+
+    Updates a single object in the collection
+
+    :reqheader Authorization: OAuth bearer token.
+
+    :param str collection:
+        The collection that the user would like to access (i.e. ``contacts`` or
+        ``groups``)
+    :param str object_key:
+        The key of the object that is to be modified.
+
+    :<json object: The data that the fields should be updated with.
+
+    :statuscode 200: no error
+    :statuscode 400: invalid JSON data
+    :statuscode 401: no auth token
+    :statuscode 403: bad auth token
+    :statuscode 404: cannot find contact or bad contact key
+
+    :>json object: The object that was updated, with the updated fields.
+
+    **Example request**:
+
+    .. sourcecode:: http
+
+        PUT /api/contacts/1e2dea8cffde4446a119c72697c38d5b HTTP/1.1
+        Host: example.com
+        Authorization: Bearer auth-token
+        Content-Length: 35
+
+        {"name": "Foo", "msisdn": "+12345"}
+
+    **Example response**:
+
+    .. sourcecode:: http
+
+        HTTP/1.1 200 OK
+        Server: ...
+        Date: ...
+        Content-Type: text/html; charset=UTF-8
+        Content-Length: 374
+        Connection: keep-alive
+
+        {..., "msisdn": "+12345", "name": "Foo", ...}
+
+
+.. http:delete:: /(str:collection)/(str:object_key)
+
+    Removes a single object from the collection.
+
+    :reqheader Authorization: OAuth bearer token.
+
+    :param str collection:
+        The collection that the user would like to access (i.e. ``contacts`` or
+        ``groups``)
+    :param str object_key:
+        The key of the object that is to be removed.
+
+    :statuscode 200: no error
+    :statuscode 401: no auth token
+    :statuscode 403: bad auth token
+    :statuscode 404: cannot find contact or bad contact key
+
+    :>json object: The object that was deleted.
+
+    **Example request**:
+
+    .. sourcecode:: http
+
+        DELETE /api/contacts/68e456a0c8da43bea162839a9a1669c0 HTTP/1.1
+        Host: example.com
+        Authorization: Bearer auth-token
+
+    **Example response**:
+
+    .. sourcecode:: http
+
+        HTTP/1.1 200 OK
+        Server: ...
+        Date: ...
+        Content-Type: text/html; charset=UTF-8
+        Content-Length: ...
+        Connection: keep-alive
+
+        {..., "key": "68e456a0c8da43bea162839a9a1669c0", ...}
