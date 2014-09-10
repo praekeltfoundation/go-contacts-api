@@ -142,7 +142,7 @@ the collections when creating and updating objects.
         An object of extra information stored about the contact. Defaults to ``{}``.
     :json string created_at:
         The timestamp of when the contact was created. Defaults to the current date
-        and time.
+        and time. Uses the ISO 8601 format, ie. ``YYYY-MM-DD hh:mm:ss``.
     :json string mxit_id:
         The MXIT ID of the contact. Defaults to ``null``.
     :json string dob:
@@ -153,7 +153,7 @@ the collections when creating and updating objects.
     :json string facebook_id:
         The Facebook ID of the contact. Defaults to ``null``.
     :json string name:
-        The name of the contact. Defaults to null.
+        The name of the contact. Defaults to ``null``.
     :json string surname:
         The surname of the contact. Defaults to ``null``.
     :json string wechat_id:
@@ -189,7 +189,7 @@ the collections when creating and updating objects.
         representing a static group.
     :json string created_at:
         The timestamp of when the group was created. Defaults to the current date
-        and time.
+        and time. Uses the ISO 8601 format, ie. ``YYYY-MM-DD hh:mm:ss``.
 
 **Immutable group fields**:
 
