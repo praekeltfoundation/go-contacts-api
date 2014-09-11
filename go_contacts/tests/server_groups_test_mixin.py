@@ -256,7 +256,7 @@ class GroupsApiTestMixin(object):
         group_smart = yield self.create_group(api, name=u'Smart',
                                               query=u'test_query')
 
-        code, data = yield self.request(api, 'GET', '/groups/?max_results=2')
+        code, data = yield self.request(api, 'GET', '/groups/?max_results=3')
         self.assertEqual(code, 200)
         cursor = data[u'cursor']
         groups = data[u'data']
@@ -292,29 +292,9 @@ class GroupsApiTestMixin(object):
         yield self.create_group(api, name=u'Groups 1')
 
         code, data = yield self.request(api, 'GET', '/groups/?cursor=bad-id')
-        self.assertEqual(code, 200)
-        self.assertEqual(data.get(u'cursor'), None)
-        self.assertEqual(data.get(u'data'), [])
-
-    @inlineCallbacks
-    def test_page_deleted_cursor(self):
-        """
-        If the group linked to the cursor is deleted, it should still return
-        the next page
-        """
-        api = self.mk_api()
-        keys = []
-        for i in range(4):
-            group = yield self.create_group(api, name=u'%s' % str(i)*5)
-            keys.append(group.get('key'))
-        keys.sort()
-        code, deleted_group = yield self.request(
-            api, 'DELETE', '/groups/%s' % keys[1])
-        code, data = yield self.request(
-            api, 'GET', '/groups/?max_items=2&cursor=%s' %
-            deleted_group['key'].encode('rot13'))
-        self.assertEqual(code, 200)
-        self.assertTrue(data['data'][0]['key'], keys[2])
+        self.assertEqual(code, 400)
+        self.assertEqual(data.get(u'status_code'), 400)
+        self.assertEqual(data.get(u'reason'), u'invalid cursor: bad-id')
 
     @inlineCallbacks
     def test_page_query(self):
@@ -352,18 +332,3 @@ class GroupsApiTestMixin(object):
             yield self.create_group(api, name=u'%s' % str(i)*5)
         code, data = yield self.request(api, 'GET', '/groups/')
         self.assertEqual(len(data.get(u'data')), 5)
-
-    @inlineCallbacks
-    def test_page_cursor_encoding(self):
-        """
-        The cursor should be the ROT13 encoding of the key of the last group on
-        the page
-        """
-        api = self.mk_api()
-        keys = []
-        for i in range(3):
-            group = yield self.create_group(api, name=u'%s' % str(i)*5)
-            keys.append(group.get('key'))
-        keys.sort()
-        code, data = yield self.request(api, 'GET', '/groups/?max_results=2')
-        self.assertEqual(data.get('cursor'), keys[1].encode('rot13'))

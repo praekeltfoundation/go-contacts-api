@@ -131,7 +131,6 @@ class RiakContactsCollection(object):
             list of all the objects within the page.
         :rtype: tuple
         """
-        # TODO: Use riak pagination instead of fake pagination
         if query is not None:
             raise CollectionUsageError("query parameter not supported")
 
