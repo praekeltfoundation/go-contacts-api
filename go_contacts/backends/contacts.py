@@ -13,8 +13,6 @@ from go_api.collections import ICollection
 from go_api.collections.errors import (
     CollectionObjectNotFound, CollectionUsageError)
 
-from utils import _paginate
-
 
 def contact_to_dict(contact):
     """
@@ -140,13 +138,21 @@ class RiakContactsCollection(object):
         max_results = max_results or float('inf')
         max_results = min(max_results, self.max_contacts_per_page)
 
-        contact_keys = yield self.contact_store.list_contacts()
-        contact_keys, cursor = _paginate(contact_keys, cursor, max_results)
+        model_proxy = self.contact_store.contacts
+        user_account_key = self.contact_store.user_account_key
+        try:
+            contact_keys = yield model_proxy.index_keys_page(
+                'user_account', user_account_key, max_results=max_results,
+                continuation=cursor)
+        except:
+            raise CollectionUsageError("invalid cursor: %s" % cursor)
+
         contact_list = []
         for key in contact_keys:
             contact = yield self.contact_store.get_contact_by_key(key)
             contact = contact_to_dict(contact)
             contact_list.append(contact)
+        cursor = contact_keys.continuation
         returnValue((cursor, contact_list))
 
     @inlineCallbacks
