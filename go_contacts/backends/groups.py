@@ -15,7 +15,7 @@ from go_api.collections.errors import (
 
 from go_contacts.backends.riak import RiakContactsCollection
 
-from utils import _paginate
+from utils import _get_page_of_keys
 
 
 def group_to_dict(group):
@@ -137,9 +137,11 @@ class RiakGroupsCollection(object):
         max_results = max_results or float('inf')
         max_results = min(max_results, self.max_groups_per_page)
 
-        group_keys = yield self.contact_store.list_keys(
-            self.contact_store.groups)
-        group_keys, cursor = _paginate(group_keys, cursor, max_results)
+        model_proxy = self.contact_store.groups
+        user_account_key = self.contact_store.user_account_key
+        cursor, group_keys = yield _get_page_of_keys(
+            model_proxy, user_account_key, max_results, cursor)
+
         group_list = []
         for key in group_keys:
             group = yield self.contact_store.get_group(key)

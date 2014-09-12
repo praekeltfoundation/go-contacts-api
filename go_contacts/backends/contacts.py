@@ -6,6 +6,7 @@ from twisted.internet.defer import inlineCallbacks, returnValue
 from zope.interface import implementer
 
 from vumi.persist.fields import ValidationError
+
 from go.vumitools.contact import (
     ContactStore, ContactNotFoundError, Contact)
 
@@ -13,7 +14,7 @@ from go_api.collections import ICollection
 from go_api.collections.errors import (
     CollectionObjectNotFound, CollectionUsageError)
 
-from utils import _paginate
+from utils import _get_page_of_keys
 
 
 def contact_to_dict(contact):
@@ -133,20 +134,24 @@ class RiakContactsCollection(object):
             list of all the objects within the page.
         :rtype: tuple
         """
-        # TODO: Use riak pagination instead of fake pagination
         if query is not None:
             raise CollectionUsageError("query parameter not supported")
 
         max_results = max_results or float('inf')
         max_results = min(max_results, self.max_contacts_per_page)
 
-        contact_keys = yield self.contact_store.list_contacts()
-        contact_keys, cursor = _paginate(contact_keys, cursor, max_results)
+        model_proxy = self.contact_store.contacts
+        user_account_key = self.contact_store.user_account_key
+
+        cursor, contact_keys = yield _get_page_of_keys(
+            model_proxy, user_account_key, max_results, cursor)
+
         contact_list = []
         for key in contact_keys:
             contact = yield self.contact_store.get_contact_by_key(key)
             contact = contact_to_dict(contact)
             contact_list.append(contact)
+
         returnValue((cursor, contact_list))
 
     @inlineCallbacks

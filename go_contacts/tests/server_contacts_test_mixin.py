@@ -362,7 +362,7 @@ class ContactsApiTestMixin(object):
             api, name=u"Susan", msisdn=u"+54321")
 
         code, data = yield self.request(
-            api, 'GET', '/contacts/?max_results=2')
+            api, 'GET', '/contacts/?max_results=3')
         self.assertEqual(code, 200)
         cursor = data[u'cursor']
         contacts = data[u'data']
@@ -400,30 +400,11 @@ class ContactsApiTestMixin(object):
 
         code, data = yield self.request(
             api, 'GET', '/contacts/?cursor=bad-id')
-        self.assertEqual(code, 200)
-        self.assertEqual(data.get(u'cursor'), None)
-        self.assertEqual(data.get(u'data'), [])
-
-    @inlineCallbacks
-    def test_page_deleted_cursor(self):
-        """
-        If the contact linked to the cursor is deleted, it should still return
-        the next page.
-        """
-        api = self.mk_api()
-        keys = []
-        for i in range(4):
-            contact = yield self.create_contact(
-                api, name=u'%s' % str(i)*5, msisdn=u'+%s' % str(i)*5)
-            keys.append(contact.get('key'))
-        keys.sort()
-        code, deleted_contact = yield self.request(
-            api, 'DELETE', '/contacts/%s' % keys[1])
-        code, data = yield self.request(
-            api, 'GET', '/contacts/?max_items=2&cursor=%s' %
-            deleted_contact['key'].encode('rot13'))
-        self.assertEqual(code, 200)
-        self.assertEqual(data['data'][0]['key'], keys[2])
+        self.assertEqual(code, 400)
+        self.assertEqual(data.get(u'status_code'), 400)
+        self.assertEqual(
+            data.get(u'reason'),
+            u"Riak error, possible invalid cursor: u'bad-id'")
 
     @inlineCallbacks
     def test_page_query(self):
@@ -436,20 +417,3 @@ class ContactsApiTestMixin(object):
         self.assertEqual(code, 400)
         self.assertEqual(data.get(u'status_code'), 400)
         self.assertEqual(data.get(u'reason'), u'query parameter not supported')
-
-    @inlineCallbacks
-    def test_page_cursor_encoding(self):
-        """
-        The cursor should be the ROT13 encoding of the key of the last contact
-        on the page.
-        """
-        api = self.mk_api()
-        keys = []
-        for i in range(3):
-            contact = yield self.create_contact(
-                api, name=u'%s' % str(i)*5, msisdn=u'+%s' % str(i)*5)
-            keys.append(contact.get('key'))
-        keys.sort()
-        code, data = yield self.request(
-            api, 'GET', '/contacts/?max_results=2')
-        self.assertEqual(data.get('cursor'), keys[1].encode('rot13'))

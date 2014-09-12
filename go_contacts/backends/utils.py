@@ -1,22 +1,17 @@
-import itertools
+from vumi.persist.model import VumiRiakError
+from go_api.collections.errors import CollectionUsageError
+from twisted.internet.defer import inlineCallbacks, returnValue
 
 
-def _paginate(keys_list, cursor, max_results):
-    keys_list.sort()
-    if cursor is not None:
-        # encode and decode are the same operation
-        cursor = _encode_cursor(cursor)
-        keys_list = list(itertools.dropwhile(
-            lambda contact: contact <= cursor, keys_list))
-    new_cursor = None
-    if len(keys_list) > max_results:
-        keys_list = keys_list[:max_results]
-        new_cursor = keys_list[-1]
-        new_cursor = _encode_cursor(new_cursor)
-    return (keys_list, new_cursor)
+@inlineCallbacks
+def _get_page_of_keys(model_proxy, user_account_key, max_results, cursor):
+    try:
+        contact_keys = yield model_proxy.index_keys_page(
+            'user_account', user_account_key, max_results=max_results,
+            continuation=cursor)
+    except VumiRiakError:
+        raise CollectionUsageError(
+            "Riak error, possible invalid cursor: %r" % (cursor,))
 
-
-def _encode_cursor(cursor):
-    if cursor is not None:
-        cursor = cursor.encode('rot13')
-    return cursor
+    cursor = contact_keys.continuation
+    returnValue((cursor, contact_keys))

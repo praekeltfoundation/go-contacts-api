@@ -14,6 +14,7 @@ setup(
     install_requires=[
         'cyclone',
         'go_api>=0.2.0',
+        'vumi>=0.5.2',
         'vumi-go',
         'confmodel==0.2.0',
     ],
