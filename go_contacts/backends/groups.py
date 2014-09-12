@@ -139,7 +139,7 @@ class RiakGroupsCollection(object):
 
         model_proxy = self.contact_store.groups
         user_account_key = self.contact_store.user_account_key
-        cursor, group_keys = _get_page_of_keys(
+        cursor, group_keys = yield _get_page_of_keys(
             model_proxy, user_account_key, max_results, cursor)
 
         group_list = []
