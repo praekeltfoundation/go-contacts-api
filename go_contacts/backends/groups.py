@@ -6,6 +6,7 @@ from twisted.internet.defer import inlineCallbacks, returnValue
 from zope.interface import implementer
 
 from vumi.persist.fields import ValidationError
+from vumi.persist.model import VumiRiakError
 from go.vumitools.contact import (
     ContactStore, ContactGroup)
 
@@ -141,8 +142,9 @@ class RiakGroupsCollection(object):
             group_keys = yield model_proxy.index_keys_page(
                 'user_account', user_account_key, max_results=max_results,
                 continuation=cursor)
-        except:
-            raise CollectionUsageError("invalid cursor: %s" % cursor)
+        except VumiRiakError:
+            raise CollectionUsageError(
+                "Riak error, possible invalid cursor: %s" % cursor)
 
         group_list = []
         for key in group_keys:

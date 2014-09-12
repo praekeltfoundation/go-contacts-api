@@ -57,7 +57,9 @@ def _paginate(contact_list, cursor, max_results):
     contact_list.sort(key=lambda contact: contact['key'])
     if cursor is not None:
         if cursor not in previous_cursors:
-            raise FakeContactsError(400, u"invalid cursor: %s" % cursor)
+            raise FakeContactsError(
+                400,
+                u"Riak error, possible invalid cursor: %s" % cursor)
         # Encoding and decoding are the same operation
         cursor = _encode_cursor(cursor)
         contact_list = list(itertools.dropwhile(
