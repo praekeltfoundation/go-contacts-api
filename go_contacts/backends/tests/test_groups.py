@@ -28,7 +28,7 @@ class TestRiakGroupsBackend(VumiTestCase):
     @inlineCallbacks
     def mk_backend(self):
         manager = yield self.persistence_helper.get_riak_manager()
-        backend = RiakGroupsBackend(manager)
+        backend = RiakGroupsBackend(manager, 10)
         returnValue(backend)
 
     @inlineCallbacks
@@ -48,7 +48,7 @@ class TestRiakGroupsCollection(VumiTestCase):
     def mk_collection(self, owner_id):
         manager = yield self.persistence_helper.get_riak_manager()
         contact_store = ContactStore(manager, owner_id)
-        collection = RiakGroupsCollection(contact_store)
+        collection = RiakGroupsCollection(contact_store, 10)
         returnValue(collection)
 
     EXPECTED_DATE_FORMAT = '%Y-%m-%d %H:%M:%S.%f'

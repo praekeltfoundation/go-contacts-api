@@ -6,12 +6,15 @@ from twisted.internet.defer import inlineCallbacks, returnValue
 from zope.interface import implementer
 
 from vumi.persist.fields import ValidationError
+
 from go.vumitools.contact import (
     ContactStore, ContactNotFoundError, Contact)
 
 from go_api.collections import ICollection
 from go_api.collections.errors import (
     CollectionObjectNotFound, CollectionUsageError)
+
+from utils import _get_page_of_keys
 
 
 def contact_to_dict(contact):
@@ -33,18 +36,21 @@ def contact_to_dict(contact):
 
 
 class RiakContactsBackend(object):
-    def __init__(self, riak_manager):
+    def __init__(self, riak_manager, max_contacts_per_page):
         self.riak_manager = riak_manager
+        self.max_contacts_per_page = max_contacts_per_page
 
     def get_contact_collection(self, owner_id):
         contact_store = ContactStore(self.riak_manager, owner_id)
-        return RiakContactsCollection(contact_store)
+        return RiakContactsCollection(
+            contact_store, self.max_contacts_per_page)
 
 
 @implementer(ICollection)
 class RiakContactsCollection(object):
-    def __init__(self, contact_store):
+    def __init__(self, contact_store, max_contacts_per_page):
         self.contact_store = contact_store
+        self.max_contacts_per_page = max_contacts_per_page
 
     @staticmethod
     def _pick_fields(data, keys):
@@ -84,13 +90,69 @@ class RiakContactsCollection(object):
         """
         raise NotImplementedError()
 
-    def all(self):
+    @inlineCallbacks
+    def stream(self, query):
         """
         Return an iterable over all objects in the collection. The iterable may
         contain deferreds instead of objects. May return a deferred instead of
         the iterable.
+
+        :param unicode query:
+            Search term requested through the API. Defaults to ``None`` if no
+            search term was requested.
         """
-        raise NotImplementedError()
+        if query is not None:
+            raise CollectionUsageError("query parameter not supported")
+
+        contact_keys = yield self.contact_store.list_contacts()
+        contact_list = []
+        for key in contact_keys:
+            contact = self.contact_store.get_contact_by_key(key)
+            contact.addCallback(contact_to_dict)
+            contact_list.append(contact)
+        returnValue(contact_list)
+
+    @inlineCallbacks
+    def page(self, cursor, max_results, query):
+        """
+        Generages a page which contains a subset of the objects in the
+        collection.
+
+        :param unicode cursor:
+            Used to determine the start point of the page. Defaults to ``None``
+            if no cursor was supplied.
+        :param int max_results:
+            Used to limit the number of results presented in a page. Defaults
+            to ``None`` if no limit was specified.
+        :param unicode query:
+            Search term requested through the API. Defaults to ``None`` if no
+            search term was requested.
+
+        :return:
+            (cursor, data). ``cursor`` is an opaque string that refers to the
+            next page, and is ``None`` if this is the last page. ``data`` is a
+            list of all the objects within the page.
+        :rtype: tuple
+        """
+        if query is not None:
+            raise CollectionUsageError("query parameter not supported")
+
+        max_results = max_results or float('inf')
+        max_results = min(max_results, self.max_contacts_per_page)
+
+        model_proxy = self.contact_store.contacts
+        user_account_key = self.contact_store.user_account_key
+
+        cursor, contact_keys = yield _get_page_of_keys(
+            model_proxy, user_account_key, max_results, cursor)
+
+        contact_list = []
+        for key in contact_keys:
+            contact = yield self.contact_store.get_contact_by_key(key)
+            contact = contact_to_dict(contact)
+            contact_list.append(contact)
+
+        returnValue((cursor, contact_list))
 
     @inlineCallbacks
     def get(self, object_id):
