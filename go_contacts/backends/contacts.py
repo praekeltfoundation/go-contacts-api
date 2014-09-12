@@ -146,7 +146,7 @@ class RiakContactsCollection(object):
                 continuation=cursor)
         except VumiRiakError:
             raise CollectionUsageError(
-                "Riak error, possible invalid cursor: %s" % cursor)
+                "Riak error, possible invalid cursor: %r" % cursor)
 
         contact_list = []
         for key in contact_keys:

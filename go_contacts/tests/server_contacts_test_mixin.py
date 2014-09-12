@@ -404,7 +404,7 @@ class ContactsApiTestMixin(object):
         self.assertEqual(data.get(u'status_code'), 400)
         self.assertEqual(
             data.get(u'reason'),
-            u'Riak error, possible invalid cursor: bad-id')
+            u"Riak error, possible invalid cursor: u'bad-id'")
 
     @inlineCallbacks
     def test_page_query(self):

@@ -2,6 +2,7 @@ import json
 from uuid import uuid4
 from urlparse import urlparse, parse_qs
 import itertools
+import urllib
 
 
 class Request(object):
@@ -59,7 +60,7 @@ def _paginate(contact_list, cursor, max_results):
         if cursor not in previous_cursors:
             raise FakeContactsError(
                 400,
-                u"Riak error, possible invalid cursor: %s" % cursor)
+                u"Riak error, possible invalid cursor: %r" % cursor)
         # Encoding and decoding are the same operation
         cursor = _encode_cursor(cursor)
         contact_list = list(itertools.dropwhile(
@@ -354,8 +355,9 @@ class FakeContactsApi(object):
             self.build_response("", 404)
 
         try:
+            query_string = parse_qs(urllib.unquote(url.query).decode('utf8'))
             return self.build_response(
-                handler.request(request, contact_key, parse_qs(url.query)))
+                handler.request(request, contact_key, query_string))
         except FakeContactsError as err:
             return self.build_response(err.data, err.code)
 

@@ -294,10 +294,9 @@ class GroupsApiTestMixin(object):
         code, data = yield self.request(api, 'GET', '/groups/?cursor=bad-id')
         self.assertEqual(code, 400)
         self.assertEqual(data.get(u'status_code'), 400)
-        print 'bleh'
         self.assertEqual(
             data.get(u'reason'),
-            u'Riak error, possible invalid cursor: bad-id')
+            u"Riak error, possible invalid cursor: u'bad-id'")
 
     @inlineCallbacks
     def test_page_query(self):
