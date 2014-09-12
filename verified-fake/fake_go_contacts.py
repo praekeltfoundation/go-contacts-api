@@ -60,7 +60,7 @@ def _paginate(contact_list, cursor, max_results):
         if cursor not in previous_cursors:
             raise FakeContactsError(
                 400,
-                u"Riak error, possible invalid cursor: %r" % cursor)
+                u"Riak error, possible invalid cursor: %r" % (cursor,))
         # Encoding and decoding are the same operation
         cursor = _encode_cursor(cursor)
         contact_list = list(itertools.dropwhile(

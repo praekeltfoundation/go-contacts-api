@@ -6,13 +6,15 @@ from twisted.internet.defer import inlineCallbacks, returnValue
 from zope.interface import implementer
 
 from vumi.persist.fields import ValidationError
-from vumi.persist.model import VumiRiakError
+
 from go.vumitools.contact import (
     ContactStore, ContactNotFoundError, Contact)
 
 from go_api.collections import ICollection
 from go_api.collections.errors import (
     CollectionObjectNotFound, CollectionUsageError)
+
+from utils import _get_page_of_keys
 
 
 def contact_to_dict(contact):
@@ -140,20 +142,16 @@ class RiakContactsCollection(object):
 
         model_proxy = self.contact_store.contacts
         user_account_key = self.contact_store.user_account_key
-        try:
-            contact_keys = yield model_proxy.index_keys_page(
-                'user_account', user_account_key, max_results=max_results,
-                continuation=cursor)
-        except VumiRiakError:
-            raise CollectionUsageError(
-                "Riak error, possible invalid cursor: %r" % cursor)
+
+        cursor, contact_keys = _get_page_of_keys(
+            model_proxy, user_account_key, max_results, cursor)
 
         contact_list = []
         for key in contact_keys:
             contact = yield self.contact_store.get_contact_by_key(key)
             contact = contact_to_dict(contact)
             contact_list.append(contact)
-        cursor = contact_keys.continuation
+
         returnValue((cursor, contact_list))
 
     @inlineCallbacks
