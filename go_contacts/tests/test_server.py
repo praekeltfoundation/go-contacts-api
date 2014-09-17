@@ -1,5 +1,8 @@
 """
 Tests for contacts API cyclone server.
+
+These tests are run against both the real implementation of the API and the
+verified fake implementation in order to verify that both behave correctly.
 """
 
 import yaml
