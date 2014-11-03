@@ -90,7 +90,6 @@ class RiakContactsCollection(object):
         """
         raise NotImplementedError()
 
-    @inlineCallbacks
     def stream(self, query):
         """
         Return an iterable over all objects in the collection. The iterable may
@@ -104,13 +103,30 @@ class RiakContactsCollection(object):
         if query is not None:
             raise CollectionUsageError("query parameter not supported")
 
-        contact_keys = yield self.contact_store.list_contacts()
-        contact_list = []
-        for key in contact_keys:
-            contact = self.contact_store.get_contact_by_key(key)
-            contact.addCallback(contact_to_dict)
-            contact_list.append(contact)
-        returnValue(contact_list)
+        max_results = self.max_contacts_per_page
+
+        model_proxy = self.contact_store.contacts
+        user_account_key = self.contact_store.user_account_key
+
+        def process_keys(data):
+            cursor, contact_keys = data
+            contact_list = []
+            for key in contact_keys:
+                contact = self.contact_store.get_contact_by_key(key)
+                contact.addCallback(contact_to_dict)
+                contact_list.append(contact)
+            if cursor is not None:
+                d.addCallback(
+                    _get_page_of_keys, model_proxy, user_account_key,
+                    max_results, cursor)
+                d.addCallback(process_keys)
+            return contact_list
+
+        d = _get_page_of_keys(
+            model_proxy, user_account_key, max_results, None)
+        d.addCallback(process_keys)
+
+        return d
 
     @inlineCallbacks
     def page(self, cursor, max_results, query):
