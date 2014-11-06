@@ -13,8 +13,7 @@ from go.vumitools.contact import (
 from go_api.collections import ICollection
 from go_api.collections.errors import (
     CollectionObjectNotFound, CollectionUsageError)
-from go_api.queue import (
-    PausingDeferredQueue, PausingQueueCloseMarker)
+from go_api.queue import PausingDeferredQueue, PausingQueueCloseMarker
 
 from utils import _get_page_of_keys
 

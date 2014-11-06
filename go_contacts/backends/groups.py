@@ -12,6 +12,7 @@ from go.vumitools.contact import (
 from go_api.collections import ICollection
 from go_api.collections.errors import (
     CollectionObjectNotFound, CollectionUsageError)
+from go_api.queue import PausingDeferredQueue, PausingQueueCloseMarker
 
 from go_contacts.backends.riak import RiakContactsCollection
 
@@ -83,7 +84,6 @@ class RiakGroupsCollection(object):
         """
         raise NotImplementedError()
 
-    @inlineCallbacks
     def stream(self, query):
         """
         Return an iterable over all objects in the collection. The iterable may
@@ -98,14 +98,37 @@ class RiakGroupsCollection(object):
         if query is not None:
             raise CollectionUsageError("query parameter not supported")
 
-        group_keys = yield self.contact_store.list_keys(
-            self.contact_store.groups)
-        group_list = []
-        for key in group_keys:
-            group = self.contact_store.get_group(key)
-            group.addCallback(group_to_dict)
-            group_list.append(group)
-        returnValue(group_list)
+        max_results = self.max_groups_per_page
+
+        model_proxy = self.contact_store.groups
+        user_account_key = self.contact_store.user_account_key
+
+        q = PausingDeferredQueue(backlog=1, size=max_results)
+
+        @inlineCallbacks
+        def fill_queue():
+            keys_deferred = _get_page_of_keys(
+                model_proxy, user_account_key, max_results, None)
+
+            while True:
+                cursor, keys = yield keys_deferred
+                if cursor is not None:
+                    # Get the next page of keys while we fetch the groups
+                    keys_deferred = _get_page_of_keys(
+                        model_proxy, user_account_key, max_results, cursor)
+
+                for key in keys:
+                    group = yield self.contact_store.get_group(key)
+                    group = group_to_dict(group)
+                    yield q.put(group)
+
+                if cursor is None:
+                    break
+
+            q.put(PausingQueueCloseMarker())
+
+        q.fill_d = fill_queue()
+        return q
 
     @inlineCallbacks
     def page(self, cursor, max_results, query):
