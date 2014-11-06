@@ -25,12 +25,12 @@ def _fill_queue(q, get_page, get_dict):
     while True:
         cursor, keys = yield keys_deferred
         if cursor is not None:
-            # Get the next page of keys while we fetch the contacts
+            # Get the next page of keys while we fetch the objects
             keys_deferred = get_page(cursor)
 
         for key in keys:
-            contact = yield get_dict(key)
-            yield q.put(contact)
+            obj = yield get_dict(key)
+            yield q.put(obj)
 
         if cursor is None:
             break
