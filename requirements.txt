@@ -17,5 +17,6 @@
 -e git+https://github.com/praekelt/vxpolls.git#egg=vxpolls
 -e git+https://github.com/praekelt/vumi-wikipedia.git#egg=vumi-wikipedia
 -e git+https://github.com/praekelt/vumi-go.git#egg=vumi-go
+-e git+https://github.com/praekelt/go-api-toolkit.git#egg=go_api
 
 -e .
