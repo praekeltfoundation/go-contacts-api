@@ -15,7 +15,7 @@ from go_api.collections.errors import (
     CollectionObjectNotFound, CollectionUsageError)
 from go_api.queue import PausingDeferredQueue, PausingQueueCloseMarker
 
-from utils import _get_page_of_keys
+from utils import _get_page_of_keys, _fill_queue
 
 
 def contact_to_dict(contact):
@@ -107,35 +107,20 @@ class RiakContactsCollection(object):
             raise CollectionUsageError("query parameter not supported")
 
         max_results = self.max_contacts_per_page
-
         model_proxy = self.contact_store.contacts
         user_account_key = self.contact_store.user_account_key
 
+        def get_page(cursor):
+            return _get_page_of_keys(
+                model_proxy, user_account_key, max_results, cursor)
+
+        def get_dict(key):
+            d = self.contact_store.get_contact_by_key(key)
+            d.addCallback(contact_to_dict)
+            return d
+
         q = PausingDeferredQueue(backlog=1, size=max_results)
-
-        @inlineCallbacks
-        def fill_queue():
-            keys_deferred = _get_page_of_keys(
-                model_proxy, user_account_key, max_results, None)
-
-            while True:
-                cursor, keys = yield keys_deferred
-                if cursor is not None:
-                    # Get the next page of keys while we fetch the contacts
-                    keys_deferred = _get_page_of_keys(
-                        model_proxy, user_account_key, max_results, cursor)
-
-                for key in keys:
-                    contact = yield self.contact_store.get_contact_by_key(key)
-                    contact = contact_to_dict(contact)
-                    yield q.put(contact)
-
-                if cursor is None:
-                    break
-
-            q.put(PausingQueueCloseMarker())
-
-        q.fill_d = fill_queue()
+        q.fill_d = _fill_queue(q, get_page, get_dict)
         return q
 
     @inlineCallbacks
