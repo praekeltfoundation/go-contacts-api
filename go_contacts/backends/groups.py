@@ -12,11 +12,11 @@ from go.vumitools.contact import (
 from go_api.collections import ICollection
 from go_api.collections.errors import (
     CollectionObjectNotFound, CollectionUsageError)
-from go_api.queue import PausingDeferredQueue, PausingQueueCloseMarker
+from go_api.queue import PausingDeferredQueue
 
 from go_contacts.backends.riak import RiakContactsCollection
 
-from utils import _get_page_of_keys
+from utils import _get_page_of_keys, _fill_queue
 
 
 def group_to_dict(group):
@@ -100,35 +100,20 @@ class RiakGroupsCollection(object):
             raise CollectionUsageError("query parameter not supported")
 
         max_results = self.max_groups_per_page
-
         model_proxy = self.contact_store.groups
         user_account_key = self.contact_store.user_account_key
 
-        q = PausingDeferredQueue(backlog=1, size=max_results)
+        def get_page(cursor):
+            return _get_page_of_keys(
+                model_proxy, user_account_key, max_results, cursor)
 
-        @inlineCallbacks
-        def fill_queue():
-            keys_deferred = _get_page_of_keys(
-                model_proxy, user_account_key, max_results, None)
+        def get_dict(key):
+            d = self.contact_store.get_group(key)
+            d.addCallback(group_to_dict)
+            return d
 
-            while True:
-                cursor, keys = yield keys_deferred
-                if cursor is not None:
-                    # Get the next page of keys while we fetch the groups
-                    keys_deferred = _get_page_of_keys(
-                        model_proxy, user_account_key, max_results, cursor)
-
-                for key in keys:
-                    group = yield self.contact_store.get_group(key)
-                    group = group_to_dict(group)
-                    yield q.put(group)
-
-                if cursor is None:
-                    break
-
-            q.put(PausingQueueCloseMarker())
-
-        q.fill_d = fill_queue()
+        q = PausingDeferredQueue(backlog=1, size=self.max_groups_per_page)
+        q.fill_d = _fill_queue(q, get_page, get_dict)
         return q
 
     @inlineCallbacks
