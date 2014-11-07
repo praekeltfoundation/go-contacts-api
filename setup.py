@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name="go-contacts",
-    version="0.1.4",
+    version="0.1.5",
     url='http://github.com/praekelt/go-contacts-api',
     license='BSD',
     description="A contacts and groups API for Vumi Go",
@@ -13,7 +13,7 @@ setup(
     include_package_data=True,
     install_requires=[
         'cyclone',
-        'go_api>=0.2.0',
+        'go_api>=0.3.0',
         'vumi>=0.5.2',
         'vumi-go',
         'confmodel==0.2.0',

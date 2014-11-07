@@ -1,3 +1,11 @@
+"""
+A verified fake implementation of go-contacts for use in tests.
+
+This implementation is tested in the go-contacts package alongside the API it
+is faking, to ensure that the behaviour is the same for both.
+"""
+
+
 import json
 from uuid import uuid4
 from urlparse import urlparse, parse_qs

@@ -12,10 +12,11 @@ from go.vumitools.contact import (
 from go_api.collections import ICollection
 from go_api.collections.errors import (
     CollectionObjectNotFound, CollectionUsageError)
+from go_api.queue import PausingDeferredQueue
 
 from go_contacts.backends.riak import RiakContactsCollection
 
-from utils import _get_page_of_keys
+from utils import _get_page_of_keys, _fill_queue
 
 
 def group_to_dict(group):
@@ -83,12 +84,12 @@ class RiakGroupsCollection(object):
         """
         raise NotImplementedError()
 
-    @inlineCallbacks
     def stream(self, query):
         """
-        Return an iterable over all objects in the collection. The iterable may
-        contain deferreds instead of objects. May return a deferred instead of
-        the iterable.
+        Return a :class:`PausingDeferredQueue` of the objects in the
+        collection. May return a deferred instead of the
+        :class:`PausingDeferredQueue`. A queue item that is an instance of
+        :class:`PausingQueueCloseMarker` indicates the end of the queue.
 
         :param unicode query:
             Search term requested through the API. Defaults to ``None`` if no
@@ -98,14 +99,22 @@ class RiakGroupsCollection(object):
         if query is not None:
             raise CollectionUsageError("query parameter not supported")
 
-        group_keys = yield self.contact_store.list_keys(
-            self.contact_store.groups)
-        group_list = []
-        for key in group_keys:
-            group = self.contact_store.get_group(key)
-            group.addCallback(group_to_dict)
-            group_list.append(group)
-        returnValue(group_list)
+        max_results = self.max_groups_per_page
+        model_proxy = self.contact_store.groups
+        user_account_key = self.contact_store.user_account_key
+
+        def get_page(cursor):
+            return _get_page_of_keys(
+                model_proxy, user_account_key, max_results, cursor)
+
+        def get_dict(key):
+            d = self.contact_store.get_group(key)
+            d.addCallback(group_to_dict)
+            return d
+
+        q = PausingDeferredQueue(backlog=1, size=self.max_groups_per_page)
+        q.fill_d = _fill_queue(q, get_page, get_dict)
+        return q
 
     @inlineCallbacks
     def page(self, cursor, max_results, query):
