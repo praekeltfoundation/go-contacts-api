@@ -13,8 +13,9 @@ from go.vumitools.contact import (
 from go_api.collections import ICollection
 from go_api.collections.errors import (
     CollectionObjectNotFound, CollectionUsageError)
+from go_api.queue import PausingDeferredQueue
 
-from utils import _get_page_of_keys
+from utils import _get_page_of_keys, _fill_queue
 
 
 def contact_to_dict(contact):
@@ -90,27 +91,37 @@ class RiakContactsCollection(object):
         """
         raise NotImplementedError()
 
-    @inlineCallbacks
     def stream(self, query):
         """
-        Return an iterable over all objects in the collection. The iterable may
-        contain deferreds instead of objects. May return a deferred instead of
-        the iterable.
+        Return a :class:`PausingDeferredQueue` of the objects in the
+        collection. May return a deferred instead of the
+        :class:`PausingDeferredQueue`. A queue item that is an instance of
+        :class:`PausingQueueCloseMarker` indicates the end of the queue.
 
         :param unicode query:
             Search term requested through the API. Defaults to ``None`` if no
-            search term was requested.
+            search term was requested. Currently not implemented and will raise
+            a CollectionUsageError if not ``None``.
         """
         if query is not None:
             raise CollectionUsageError("query parameter not supported")
 
-        contact_keys = yield self.contact_store.list_contacts()
-        contact_list = []
-        for key in contact_keys:
-            contact = self.contact_store.get_contact_by_key(key)
-            contact.addCallback(contact_to_dict)
-            contact_list.append(contact)
-        returnValue(contact_list)
+        max_results = self.max_contacts_per_page
+        model_proxy = self.contact_store.contacts
+        user_account_key = self.contact_store.user_account_key
+
+        def get_page(cursor):
+            return _get_page_of_keys(
+                model_proxy, user_account_key, max_results, cursor)
+
+        def get_dict(key):
+            d = self.contact_store.get_contact_by_key(key)
+            d.addCallback(contact_to_dict)
+            return d
+
+        q = PausingDeferredQueue(backlog=1, size=max_results)
+        q.fill_d = _fill_queue(q, get_page, get_dict)
+        return q
 
     @inlineCallbacks
     def page(self, cursor, max_results, query):
