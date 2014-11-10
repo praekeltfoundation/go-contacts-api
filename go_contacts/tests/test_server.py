@@ -20,6 +20,8 @@ from go_contacts.backends.riak import (
 from go_contacts.server import ContactsApi
 from go_contacts.tests.server_groups_test_mixin import GroupsApiTestMixin
 from go_contacts.tests.server_contacts_test_mixin import ContactsApiTestMixin
+from go_contacts.tests.server_contactsforgroup_test_mixin import (
+    ContactsForGroupApiTestMixin)
 from go_api.collections.errors import CollectionObjectNotFound
 
 from confmodel.errors import ConfigError
@@ -210,7 +212,8 @@ class TestFakeContactsApi(VumiTestCase, ContactsApiTestMixin):
             return True
 
 
-class TestGroupsApi(VumiTestCase, GroupsApiTestMixin):
+class TestGroupsApi(
+        VumiTestCase, GroupsApiTestMixin, ContactsForGroupApiTestMixin):
     def setUp(self):
         self.persistence_helper = self.add_helper(
             PersistenceHelper(use_riak=True, is_sync=False))
