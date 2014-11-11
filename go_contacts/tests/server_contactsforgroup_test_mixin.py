@@ -51,8 +51,8 @@ class ContactsForGroupApiTestMixin(object):
         code, data = yield self.request(
             api, 'GET', '/groups/1/contacts?stream=true&query=foo',
             parser='json')
-        self.assertEqual(code, 500)
-        self.assertEqual(data['status_code'], 500)
+        self.assertEqual(code, 400)
+        self.assertEqual(data['status_code'], 400)
         self.assertEqual(data['reason'], 'query parameter not supported')
 
     @inlineCallbacks
@@ -231,8 +231,8 @@ class ContactsForGroupApiTestMixin(object):
             api, 'GET', '/groups/%s/contacts?cursor=foo' % group.get('key'),
             parser='json')
 
-        self.assertEqual(code, 500)
-        self.assertEqual(data.get('status_code'), 500)
+        self.assertEqual(code, 400)
+        self.assertEqual(data.get('status_code'), 400)
         self.assertEqual(
             data.get('reason'), u"Riak error, possible invalid cursor: u'foo'")
 
@@ -262,6 +262,7 @@ class ContactsForGroupApiTestMixin(object):
         code, data = yield self.request(
             api, 'GET', '/groups/foo/contacts?query=bar', parser='json')
 
-        self.assertEqual(code, 500)
-        self.assertEqual(data.get('status_code'), 500)
+        self.assertEqual(code, 400)
+        self.assertEqual(data.get('status_code'), 400
+            )
         self.assertEqual(data.get('reason'), 'query parameter not supported')

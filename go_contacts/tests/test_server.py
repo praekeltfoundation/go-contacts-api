@@ -421,3 +421,49 @@ class TestContactsForGroupApi(VumiTestCase, ContactsForGroupApiTestMixin):
         self.assertTrue(isinstance(api.group_backend, RiakGroupsBackend))
         self.assertTrue(isinstance(api.group_backend.riak_manager,
                                    TxRiakManager))
+
+class TestFakeContactsForGroupApi(VumiTestCase, ContactsForGroupApiTestMixin):
+    def setUp(self):
+        try:
+            from fake_go_contacts import Request, FakeContactsApi
+        except ImportError as err:
+            if "fake_go_contacts" not in err.args[0]:
+                raise
+            raise ImportError(" ".join([
+                err.args[0],
+                "(install from pypi or the 'verified-fake' directory)"]))
+
+        self.req_class = Request
+        self.api_class = FakeContactsApi
+
+    def mk_api(self, limit=10):
+        return self.api_class("", "token-1", {}, {}, limit, limit)
+
+    def request(
+            self, api, method, path, body=None, headers=None, auth=True,
+            parser=None):
+        if headers is None:
+            headers = {}
+        if auth:
+            headers["Authorization"] = "Bearer token-1"
+        resp = api.handle_request(self.req_class(
+            method, path, body=body, headers=headers))
+        return resp.code, resp.data
+
+    def create_contact(self, api, **contact_data):
+        return api.contacts.create_contact(contact_data)
+
+    def get_contact(self, api, contact_key):
+        return api.contacts.get_contact(contact_key)
+
+    def create_group(self, api, **group_data):
+        return api.groups.create_group(group_data)
+
+    def contact_exists(self, api, contact_key):
+        from fake_go_contacts import FakeContactsError
+        try:
+            self.get_contact(api, contact_key)
+        except FakeContactsError:
+            return False
+        else:
+            return True

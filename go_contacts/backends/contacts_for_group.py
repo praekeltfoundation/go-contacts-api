@@ -57,7 +57,7 @@ class ContactsForGroupHandler(BaseHandler):
                 max_results=max_results, query=query)
             d.addCallback(self.write_page)
         d.addErrback(self.catch_err, 400, CollectionObjectNotFound)
-        d.addErrback(self.catch_err, 500, CollectionUsageError)
+        d.addErrback(self.catch_err, 400, CollectionUsageError)
         d.addErrback(
             self.raise_err, 500,
             "Failed to retrieve contacts for group %r." % group_id)

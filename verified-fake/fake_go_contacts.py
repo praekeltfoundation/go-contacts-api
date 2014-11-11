@@ -193,7 +193,7 @@ class FakeContacts(object):
         self.contacts_data.pop(contact_key)
         return contact
 
-    def request(self, request, contact_key, query):
+    def request(self, request, contact_key, query, contact_store):
         if request.method == "POST":
             if contact_key is None or contact_key is "":
                 return self.create_contact(request.body)
@@ -218,7 +218,8 @@ class FakeGroups(object):
     """
     Fake implementation of the Groups part of the Contacts API
     """
-    def __init__(self, groups_data={}, max_groups_per_page=10):
+    def __init__(
+            self, groups_data={}, max_groups_per_page=10):
         self.groups_data = groups_data
         self.max_groups_per_page = max_groups_per_page
 
@@ -279,6 +280,48 @@ class FakeGroups(object):
 
         return {u'cursor': cursor, u'data': groups}
 
+    def get_contacts_for_group(self, key, query):
+        stream = query.get('stream', None)
+        stream = stream and stream[0]
+        q = query.get('query', None)
+        q = q and q[0]
+        if stream == 'true':
+            return self.get_contacts_for_group_stream(q, key)
+        else:
+            cursor = query.get('cursor', None)
+            cursor = cursor and cursor[0]
+            max_results = query.get('max_results', None)
+            max_results = max_results and max_results[0]
+            return self.get_contacts_for_group_page(
+                q, key, cursor, max_results)
+
+    def _filter_contacts(self, contacts, group_key):
+        filtered = []
+        for contact in contacts:
+            if group_key in contact.get('groups'):
+                filtered.append(contact)
+        return filtered
+
+    def get_contacts_for_group_stream(self, query, key):
+        if query is not None:
+            raise FakeContactsError(400, "query parameter not supported")
+        return self._filter_contacts(
+            self.fake_contacts.get_all_contacts(None), key)
+
+    def get_contacts_for_group_page(self, query, key, cursor, max_results):
+        if query is not None:
+            raise FakeContactsError(400, "query parameter not supported")
+        contacts = self._filter_contacts(
+            self.fake_contacts.get_all_contacts(None), key)
+
+        max_results = (max_results and int(max_results)) or float('inf')
+        max_results = min(
+            max_results, self.fake_contacts.max_contacts_per_page)
+
+        contacts, cursor = _paginate(contacts, cursor, max_results)
+
+        return {u'cursor': cursor, u'data': contacts}
+
     def update_group(self, group_key, group_data):
         group_data = _data_to_json(group_data)
         group = self.get_group(group_key)
@@ -305,7 +348,8 @@ class FakeGroups(object):
             max_results = max_results and max_results[0]
             return self.get_page_groups(q, cursor, max_results)
 
-    def request(self, request, contact_key, query):
+    def request(self, request, contact_key, query, contact_store):
+        self.fake_contacts = contact_store
         if request.method == "POST":
             if contact_key is None or contact_key is "":
                 return self.create_group(request.body)
@@ -314,6 +358,9 @@ class FakeGroups(object):
         elif request.method == "GET":
             if contact_key is None or contact_key == "":
                 return self.get_all(query)
+            elif contact_key.endswith('contacts'):
+                key = contact_key[:contact_key.find('/')]
+                return self.get_contacts_for_group(key, query)
             else:
                 return self.get_group(contact_key)
         elif request.method == "PUT":
@@ -365,7 +412,8 @@ class FakeContactsApi(object):
         try:
             query_string = parse_qs(urllib.unquote(url.query).decode('utf8'))
             return self.build_response(
-                handler.request(request, contact_key, query_string))
+                handler.request(
+                    request, contact_key, query_string, self.contacts))
         except FakeContactsError as err:
             return self.build_response(err.data, err.code)
 
