@@ -13,7 +13,8 @@ from go_api.queue import PausingDeferredQueue, PausingQueueCloseMarker
 
 from twisted.internet.defer import maybeDeferred
 
-# from .contacts import contact_to_dict
+from .contacts import contact_to_dict
+from .utils import _get_page_of_keys
 
 
 class ContactsForGroupBackend(object):
@@ -77,5 +78,22 @@ class RiakContactsForGroupCollection(object):
         yield q.put(PausingQueueCloseMarker())
         returnValue(q)
 
+    @inlineCallbacks
     def page(self, group_id, cursor, max_results, query):
-        return None, []
+        if query is not None:
+            raise CollectionUsageError("query parameter not supported")
+
+        max_results = max_results or float('inf')
+        max_results = min(max_results, self.max_contacts_per_page)
+
+        model_proxy = self.contact_store.contacts
+        cursor, contact_keys = yield _get_page_of_keys(
+            model_proxy, group_id, max_results, cursor, field_name='groups')
+
+        contact_list = []
+        for key in contact_keys:
+            contact = yield self.contact_store.get_contact_by_key(key)
+            contact = contact_to_dict(contact)
+            contact_list.append(contact)
+
+        returnValue((cursor, contact_list))
