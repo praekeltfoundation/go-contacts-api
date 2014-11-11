@@ -70,6 +70,37 @@ class ContactsForGroupApiTestMixin(object):
         self.assertEqual(data, [])
 
     @inlineCallbacks
+    def test_stream_all_contacts_for_group(self):
+        """
+        All the contacts should be streamed if there are contacts in the
+        contact group
+        """
+        api = self.mk_api(limit=2)
+        group = yield self.create_group(api, name=u'Foo')
+        group_false = yield self.create_group(api, name=u'Wally')
+
+        contact1 = yield self.create_contact(
+            api, name=u'Bar', msisdn=u'+12345', groups=[group.get('key')])
+        contact2 = yield self.create_contact(
+            api, name=u'Baz', msisdn=u'+54321', groups=[group.get('key')])
+        contact3 = yield self.create_contact(
+            api, name=u'Qux', msisdn=u'+31415', 
+            groups=[group.get('key'), group_false.get('key')])
+        contact4 = yield self.create_contact(
+            api, name=u'Quux', msisdn=u'+27172',
+            groups=[group_false.get('key')])
+
+        code, data = yield self.request(
+            api, 'GET', '/groups/%s/contacts?stream=true' % group.get('key'),
+            parser='json_lines')
+
+        self.assertEqual(code, 200)
+        self.assertTrue(contact1 in data)
+        self.assertTrue(contact2 in data)
+        self.assertTrue(contact3 in data)
+        self.assertFalse(contact4 in data)
+
+    @inlineCallbacks
     def test_get_page_empty(self):
         """
         An empty page with None continuation cursor is sent if there are no
@@ -122,7 +153,7 @@ class ContactsForGroupApiTestMixin(object):
         contact3 = yield self.create_contact(
             api, name=u'Qux', msisdn=u'+31415', groups=[group.get('key')])
         contact4 = yield self.create_contact(
-            api, name=u'Qux', msisdn=u'+27172', groups=[group2.get('key')])
+            api, name=u'Quux', msisdn=u'+27172', groups=[group2.get('key')])
 
         code, data = yield self.request(
             api, 'GET', '/groups/%s/contacts' % group.get('key'), parser='json')
