@@ -212,8 +212,7 @@ class TestFakeContactsApi(VumiTestCase, ContactsApiTestMixin):
             return True
 
 
-class TestGroupsApi(
-        VumiTestCase, GroupsApiTestMixin, ContactsForGroupApiTestMixin):
+class TestGroupsApi(VumiTestCase, GroupsApiTestMixin):
     def setUp(self):
         self.persistence_helper = self.add_helper(
             PersistenceHelper(use_riak=True, is_sync=False))
@@ -336,3 +335,89 @@ class TestFakeGroupsApi(VumiTestCase, GroupsApiTestMixin):
             return False
         else:
             return True
+
+
+class TestContactsForGroupApi(VumiTestCase, ContactsForGroupApiTestMixin):
+    def setUp(self):
+        self.persistence_helper = self.add_helper(
+            PersistenceHelper(use_riak=True, is_sync=False))
+
+    def mk_config(self, config_dict):
+        tempfile = self.mktemp()
+        with open(tempfile, 'wb') as fp:
+            yaml.safe_dump(config_dict, fp)
+        return tempfile
+
+    def mk_api(self, limit=10):
+        configfile = self.mk_config({
+            "riak_manager": {
+                "bucket_prefix": "test",
+            },
+            "max_contacts_per_page": limit,
+            "max_groups_per_page": limit,
+        })
+        return ContactsApi(configfile)
+
+    @inlineCallbacks
+    def create_group(self, api, name, query=None):
+        if query is not None:
+            group = yield self._store(api).new_smart_group(name, query)
+        else:
+            group = yield self._store(api).new_group(name)
+        returnValue(group_to_dict(group))
+
+    def _store(self, api):
+        owner = self.OWNER_ID.encode("utf-8")
+        return api.group_backend.get_group_collection(owner).contact_store
+
+    @inlineCallbacks
+    def get_group(self, api, key):
+        group = yield self._store(api).get_group(key)
+        if group is None:
+            raise CollectionObjectNotFound(key, u'Group')
+        returnValue(group_to_dict(group))
+
+    @inlineCallbacks
+    def request(
+            self, api, method, path, body=None, headers=None, auth=True,
+            parser=None):
+        if headers is None:
+            headers = {}
+        if auth:
+            headers["X-Owner-ID"] = self.OWNER_ID.encode("utf-8")
+        app_helper = AppHelper(app=api)
+        resp = yield app_helper.request(
+            method, path, data=body, headers=headers)
+        if parser is not None:
+            data = yield app_helper.request(
+                method, path, data=body, headers=headers, parser=parser)
+        else:
+            data = yield resp.json()
+        returnValue((resp.code, data))
+
+    @inlineCallbacks
+    def group_exists(self, api, group_key):
+        try:
+            yield self.get_group(api, group_key)
+        except CollectionObjectNotFound:
+            returnValue(False)
+        else:
+            returnValue(True)
+
+    @inlineCallbacks
+    def create_contact(self, api, **contact_data):
+        contact = yield self._store(api).new_contact(**contact_data)
+        returnValue(contact_to_dict(contact))
+
+    def test_init(self):
+        configfile = self.mk_config({
+            "riak_manager": {
+                "bucket_prefix": "test",
+            },
+            "max_contacts_per_page": 10,
+            "max_groups_per_page": 10,
+        })
+        api = ContactsApi(configfile)
+        self.assertTrue(isinstance(api.group_backend, RiakGroupsBackend))
+        self.assertTrue(isinstance(api.group_backend.riak_manager,
+                                   TxRiakManager))

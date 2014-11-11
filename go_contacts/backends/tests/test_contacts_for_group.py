@@ -104,23 +104,6 @@ class TestContactsForGroupHandler(VumiTestCase):
         returnValue(collection)
 
     @inlineCallbacks
-    def test_get_stream(self):
-        data = yield self.app_helper.get('/root/1/contacts?stream=true',
-                                         parser='json_lines')
-        self.assertEqual(
-            data,
-            [])
-
-    @inlineCallbacks
-    def test_get_page(self):
-        data = yield self.app_helper.get('/root/1/contacts',
-                                         parser='json')
-        self.assertEqual(data, {
-            u'cursor': None,
-            u'data': [],
-        })
-
-    @inlineCallbacks
     def test_get_stream_with_query(self):
         data = yield self.app_helper.get(
             '/root/1/contacts?stream=true&query=foo', parser='json')
