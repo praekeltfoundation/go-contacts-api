@@ -84,7 +84,7 @@ class ContactsForGroupApiTestMixin(object):
         contact2 = yield self.create_contact(
             api, name=u'Baz', msisdn=u'+54321', groups=[group.get('key')])
         contact3 = yield self.create_contact(
-            api, name=u'Qux', msisdn=u'+31415', 
+            api, name=u'Qux', msisdn=u'+31415',
             groups=[group.get('key'), group_false.get('key')])
         contact4 = yield self.create_contact(
             api, name=u'Quux', msisdn=u'+27172',
@@ -109,7 +109,8 @@ class ContactsForGroupApiTestMixin(object):
         api = self.mk_api()
         group = yield self.create_group(api, name=u'Foo')
         code, data = yield self.request(
-            api, 'GET', '/groups/%s/contacts' % group.get('key'), parser='json')
+            api, 'GET', '/groups/%s/contacts' % group.get('key'),
+            parser='json')
         self.assertEqual(code, 200)
         self.assertEqual(data[u'cursor'], None)
         self.assertEqual(data[u'data'], [])
@@ -130,7 +131,8 @@ class ContactsForGroupApiTestMixin(object):
         contact3 = yield self.create_contact(
             api, name=u'Qux', msisdn=u'+31415', groups=[group2.get('key')])
         code, data = yield self.request(
-            api, 'GET', '/groups/%s/contacts' % group.get('key'), parser='json')
+            api, 'GET', '/groups/%s/contacts' % group.get('key'),
+            parser='json')
         self.assertEqual(code, 200)
         self.assertEqual(data.get('cursor'), None)
         self.assertTrue(contact1 in data.get('data'))
@@ -145,7 +147,7 @@ class ContactsForGroupApiTestMixin(object):
         """
         api = self.mk_api(limit=2)
         group = yield self.create_group(api, name=u'Foo')
-        group2 = yield self.create_group(api, name = u'Waldo')
+        group2 = yield self.create_group(api, name=u'Waldo')
         contact1 = yield self.create_contact(
             api, name=u'Bar', msisdn=u'+12345', groups=[group.get('key')])
         contact2 = yield self.create_contact(
@@ -156,7 +158,8 @@ class ContactsForGroupApiTestMixin(object):
             api, name=u'Quux', msisdn=u'+27172', groups=[group2.get('key')])
 
         code, data = yield self.request(
-            api, 'GET', '/groups/%s/contacts' % group.get('key'), parser='json')
+            api, 'GET', '/groups/%s/contacts' % group.get('key'),
+            parser='json')
 
         self.assertEqual(code, 200)
         self.assertFalse(data.get('cursor') is None)
@@ -184,7 +187,7 @@ class ContactsForGroupApiTestMixin(object):
         """
         api = self.mk_api()
         group = yield self.create_group(api, name=u'Foo')
-        group2 = yield self.create_group(api, name = u'Waldo')
+        group2 = yield self.create_group(api, name=u'Waldo')
         contact1 = yield self.create_contact(
             api, name=u'Bar', msisdn=u'+12345', groups=[group.get('key')])
         contact2 = yield self.create_contact(
@@ -263,6 +266,5 @@ class ContactsForGroupApiTestMixin(object):
             api, 'GET', '/groups/foo/contacts?query=bar', parser='json')
 
         self.assertEqual(code, 400)
-        self.assertEqual(data.get('status_code'), 400
-            )
+        self.assertEqual(data.get('status_code'), 400)
         self.assertEqual(data.get('reason'), 'query parameter not supported')

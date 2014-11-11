@@ -422,6 +422,7 @@ class TestContactsForGroupApi(VumiTestCase, ContactsForGroupApiTestMixin):
         self.assertTrue(isinstance(api.group_backend.riak_manager,
                                    TxRiakManager))
 
+
 class TestFakeContactsForGroupApi(VumiTestCase, ContactsForGroupApiTestMixin):
     def setUp(self):
         try:

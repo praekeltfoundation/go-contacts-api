@@ -9,7 +9,7 @@ from go.vumitools.contact import ContactStore
 from go_api.collections.errors import (
     CollectionObjectNotFound, CollectionUsageError)
 from go_api.cyclone.handlers import BaseHandler
-from go_api.queue import PausingDeferredQueue, PausingQueueCloseMarker
+from go_api.queue import PausingDeferredQueue
 
 from twisted.internet.defer import maybeDeferred
 
