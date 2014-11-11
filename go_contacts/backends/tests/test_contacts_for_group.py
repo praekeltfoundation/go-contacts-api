@@ -119,3 +119,10 @@ class TestContactsForGroupHandler(VumiTestCase):
             u'cursor': None,
             u'data': [],
         })
+
+    @inlineCallbacks
+    def test_get_stream_with_query(self):
+        data = yield self.app_helper.get(
+            '/root/1/contacts?stream=true&query=foo', parser='json')
+        self.assertEqual(data[u'status_code'], 500)
+        self.assertEqual(data[u'reason'], 'query parameter not supported')

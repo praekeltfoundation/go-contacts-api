@@ -43,10 +43,23 @@ class ContactsForGroupApiTestMixin(object):
     }
 
     @inlineCallbacks
+    def test_stream_query(self):
+        """
+        An HTTP error is sent if a request is sent with a query
+        """
+        api = self.mk_api()
+        code, data = yield self.request(
+            api, 'GET', '/groups/1/contacts?stream=true&query=foo',
+            parser=json)
+        self.assertEqual(code, 500)
+        self.assertEqual(data['response_code'], 500)
+        self.assertEqual(data['reason'], 'query parameter not supported')
+
+    @inlineCallbacks
     def test_stream_all_contacts_for_group_empty(self):
         """
-        This test ensures that an empty list of data is streamed if there are
-        no contacts in the contact store.
+        An empty list of data is streamed if there are no contacts in the 
+        contact group.
         """
         api = self.mk_api()
         group = yield self.create_group(api, name=u'Bob')

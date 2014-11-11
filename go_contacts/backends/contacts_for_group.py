@@ -70,6 +70,8 @@ class RiakContactsForGroupCollection(object):
 
     @inlineCallbacks
     def stream(self, group_id, query):
+        if query is not None:
+            raise CollectionUsageError("query parameter not supported")
         max_results = self.max_contacts_per_page
         q = PausingDeferredQueue(backlog=1, size=max_results)
         yield q.put(PausingQueueCloseMarker())
