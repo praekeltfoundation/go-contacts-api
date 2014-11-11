@@ -2,8 +2,6 @@
 Tests for riak contacts backend and collection.
 """
 
-from datetime import datetime
-
 from twisted.internet.defer import inlineCallbacks, returnValue
 
 from vumi.tests.helpers import VumiTestCase
@@ -48,33 +46,6 @@ class TestRiakContactsForGroupCollection(VumiTestCase):
         contact_store = ContactStore(manager, owner_id)
         collection = RiakContactsForGroupCollection(contact_store, 10)
         returnValue(collection)
-
-    EXPECTED_DATE_FORMAT = "%Y-%m-%d %H:%M:%S.%f"
-
-    CONTACT_FIELD_DEFAULTS = {
-        u'$VERSION': 2,
-        u'bbm_pin': None,
-        u'dob': None,
-        u'email_address': None,
-        u'facebook_id': None,
-        u'groups': [],
-        u'gtalk_id': None,
-        u'mxit_id': None,
-        u'name': None,
-        u'surname': None,
-        u'twitter_handle': None,
-        u'wechat_id': None,
-        u'extra': {},
-        u'subscription': {},
-    }
-
-    def assert_contact(self, contact, expected_partial):
-        expected = self.CONTACT_FIELD_DEFAULTS.copy()
-        expected.update(expected_partial)
-        if isinstance(expected.get("created_at"), datetime):
-            expected["created_at"] = expected["created_at"].strftime(
-                self.EXPECTED_DATE_FORMAT)
-        self.assertEqual(contact, expected)
 
     @inlineCallbacks
     def test_init(self):

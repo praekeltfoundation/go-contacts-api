@@ -218,8 +218,7 @@ class FakeGroups(object):
     """
     Fake implementation of the Groups part of the Contacts API
     """
-    def __init__(
-            self, groups_data={}, max_groups_per_page=10):
+    def __init__(self, groups_data={}, max_groups_per_page=10):
         self.groups_data = groups_data
         self.max_groups_per_page = max_groups_per_page
 

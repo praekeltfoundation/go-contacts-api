@@ -56,7 +56,7 @@ class ContactsForGroupHandler(BaseHandler):
                 self.collection.page, group_id, cursor=cursor,
                 max_results=max_results, query=query)
             d.addCallback(self.write_page)
-        d.addErrback(self.catch_err, 400, CollectionObjectNotFound)
+        d.addErrback(self.catch_err, 404, CollectionObjectNotFound)
         d.addErrback(self.catch_err, 400, CollectionUsageError)
         d.addErrback(
             self.raise_err, 500,

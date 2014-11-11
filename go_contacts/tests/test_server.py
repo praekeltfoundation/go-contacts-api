@@ -371,13 +371,6 @@ class TestContactsForGroupApi(VumiTestCase, ContactsForGroupApiTestMixin):
         return api.group_backend.get_group_collection(owner).contact_store
 
     @inlineCallbacks
-    def get_group(self, api, key):
-        group = yield self._store(api).get_group(key)
-        if group is None:
-            raise CollectionObjectNotFound(key, u'Group')
-        returnValue(group_to_dict(group))
-
-    @inlineCallbacks
     def request(
             self, api, method, path, body=None, headers=None, auth=True,
             parser=None):
@@ -394,15 +387,6 @@ class TestContactsForGroupApi(VumiTestCase, ContactsForGroupApiTestMixin):
         else:
             data = yield resp.json()
         returnValue((resp.code, data))
-
-    @inlineCallbacks
-    def group_exists(self, api, group_key):
-        try:
-            yield self.get_group(api, group_key)
-        except CollectionObjectNotFound:
-            returnValue(False)
-        else:
-            returnValue(True)
 
     @inlineCallbacks
     def create_contact(self, api, **contact_data):
@@ -454,17 +438,5 @@ class TestFakeContactsForGroupApi(VumiTestCase, ContactsForGroupApiTestMixin):
     def create_contact(self, api, **contact_data):
         return api.contacts.create_contact(contact_data)
 
-    def get_contact(self, api, contact_key):
-        return api.contacts.get_contact(contact_key)
-
     def create_group(self, api, **group_data):
         return api.groups.create_group(group_data)
-
-    def contact_exists(self, api, contact_key):
-        from fake_go_contacts import FakeContactsError
-        try:
-            self.get_contact(api, contact_key)
-        except FakeContactsError:
-            return False
-        else:
-            return True
