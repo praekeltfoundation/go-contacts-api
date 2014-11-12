@@ -100,3 +100,35 @@ class TestRiakContactsForGroupCollection(VumiTestCase):
         self.assertTrue(contact2 in contacts)
         self.assertTrue(contact3 in contacts)
         self.assertFalse(contact4 in contacts)
+
+    @inlineCallbacks
+    def test_page(self):
+        collection = yield self.mk_collection("owner-1")
+        group = yield self.create_group(collection, name=u'Foo')
+        group_false = yield self.create_group(collection, name=u'Wally')
+
+        contact1 = yield self.create_contact(
+            collection, name=u'Bar', msisdn=u'+12345',
+            groups=[group.get('key')])
+        contact2 = yield self.create_contact(
+            collection, name=u'Baz', msisdn=u'+54321',
+            groups=[group.get('key')])
+        contact3 = yield self.create_contact(
+            collection, name=u'Qux', msisdn=u'+31415',
+            groups=[group.get('key'), group_false.get('key')])
+        contact4 = yield self.create_contact(
+            collection, name=u'Quux', msisdn=u'+27172',
+            groups=[group_false.get('key')])
+
+        cursor, contacts = yield collection.page(
+            group.get('key'), None, 2, None)
+        self.assertFalse(cursor is None)
+
+        cursor, data = yield collection.page(group.get('key'), cursor, 2, None)
+        self.assertEqual(cursor, None)
+        contacts += data
+
+        self.assertTrue(contact1 in contacts)
+        self.assertTrue(contact2 in contacts)
+        self.assertTrue(contact3 in contacts)
+        self.assertFalse(contact4 in contacts)
