@@ -5,10 +5,12 @@ from twisted.internet.defer import inlineCallbacks, returnValue
 
 
 @inlineCallbacks
-def _get_page_of_keys(model_proxy, user_account_key, max_results, cursor):
+def _get_page_of_keys(
+        model_proxy, user_account_key, max_results, cursor,
+        field_name='user_account'):
     try:
         contact_keys = yield model_proxy.index_keys_page(
-            'user_account', user_account_key, max_results=max_results,
+            field_name, user_account_key, max_results=max_results,
             continuation=cursor)
     except VumiRiakError:
         raise CollectionUsageError(
