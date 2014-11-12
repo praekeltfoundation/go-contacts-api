@@ -6,8 +6,8 @@ from vumi.persist.txriak_manager import TxRiakManager
 
 from go_api.cyclone.handlers import ApiApplication
 from go_contacts.backends.riak import (
-    RiakContactsBackend, RiakGroupsBackend, ContactsForGroupBackend,
-    ContactsForGroupHandler)
+    RiakContactsBackend, RiakGroupsBackend, ContactsForGroupBackend)
+from go_contacts.handlers import ContactsForGroupHandler
 
 from confmodel import Config
 from confmodel.fields import ConfigInt, ConfigDict
