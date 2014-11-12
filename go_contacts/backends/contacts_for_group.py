@@ -19,11 +19,11 @@ class ContactsForGroupBackend(object):
 
     def get_model(self, owner_id):
         contact_store = ContactStore(self.riak_manager, owner_id)
-        return RiakContactsForGroupCollection(
+        return RiakContactsForGroupModel(
             contact_store, self.max_contacts_per_page)
 
 
-class RiakContactsForGroupCollection(object):
+class RiakContactsForGroupModel(object):
     def __init__(self, contact_store, max_contacts_per_page):
         self.contact_store = contact_store
         self.max_contacts_per_page = max_contacts_per_page

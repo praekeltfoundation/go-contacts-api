@@ -11,7 +11,7 @@ from go_api.queue import PausingQueueCloseMarker
 from go.vumitools.contact import ContactStore
 
 from go_contacts.backends.riak import (
-    ContactsForGroupBackend, RiakContactsForGroupCollection, group_to_dict,
+    ContactsForGroupBackend, RiakContactsForGroupModel, group_to_dict,
     contact_to_dict)
 
 
@@ -31,10 +31,10 @@ class TestRiakContactsForGroupBackend(VumiTestCase):
         backend = yield self.mk_backend()
         collection = backend.get_model("owner-1")
         self.assertEqual(collection.contact_store.user_account_key, "owner-1")
-        self.assertTrue(isinstance(collection, RiakContactsForGroupCollection))
+        self.assertTrue(isinstance(collection, RiakContactsForGroupModel))
 
 
-class TestRiakContactsForGroupCollection(VumiTestCase):
+class TestRiakContactsForGroupModel(VumiTestCase):
     def setUp(self):
         self.persistence_helper = self.add_helper(
             PersistenceHelper(use_riak=True, is_sync=False))
@@ -43,7 +43,7 @@ class TestRiakContactsForGroupCollection(VumiTestCase):
     def mk_collection(self, owner_id):
         manager = yield self.persistence_helper.get_riak_manager()
         contact_store = ContactStore(manager, owner_id)
-        collection = RiakContactsForGroupCollection(contact_store, 10)
+        collection = RiakContactsForGroupModel(contact_store, 10)
         returnValue(collection)
 
     @inlineCallbacks

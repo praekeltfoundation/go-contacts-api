@@ -5,7 +5,7 @@ from vumi.tests.helpers import VumiTestCase, PersistenceHelper
 from go.vumitools.contact import ContactStore
 
 from go_contacts.handlers import ContactsForGroupHandler
-from go_contacts.backends.riak import RiakContactsForGroupCollection
+from go_contacts.backends.riak import RiakContactsForGroupModel
 
 
 class TestContactsForGroupHandler(VumiTestCase):
@@ -26,7 +26,7 @@ class TestContactsForGroupHandler(VumiTestCase):
     def mk_collection(self, owner_id):
         manager = yield self.persistence_helper.get_riak_manager()
         contact_store = ContactStore(manager, owner_id)
-        collection = RiakContactsForGroupCollection(contact_store, 10)
+        collection = RiakContactsForGroupModel(contact_store, 10)
         returnValue(collection)
 
     @inlineCallbacks
