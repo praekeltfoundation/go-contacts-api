@@ -356,7 +356,9 @@ class TestContactsForGroupApi(VumiTestCase, ContactsForGroupApiTestMixin):
             "max_contacts_per_page": limit,
             "max_groups_per_page": limit,
         })
-        return ContactsApi(configfile)
+        api = ContactsApi(configfile)
+        self._store(api).contacts.enable_search()
+        return api
 
     @inlineCallbacks
     def create_group(self, api, name, query=None):
