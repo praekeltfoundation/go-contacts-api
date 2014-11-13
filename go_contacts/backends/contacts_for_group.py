@@ -9,7 +9,7 @@ from go_api.collections.errors import CollectionUsageError
 from go_api.queue import PausingDeferredQueue, PausingQueueCloseMarker
 
 from .contacts import contact_to_dict
-from .utils import _get_page_of_keys, _fill_queue
+from .utils import _get_page_of_keys, _fill_queue, _get_smart_page_of_keys
 
 
 class ContactsForGroupBackend(object):
@@ -24,6 +24,8 @@ class ContactsForGroupBackend(object):
 
 
 class RiakContactsForGroupModel(object):
+    cursor_keyword = 'dynamicgroup'
+
     def __init__(self, contact_store, max_contacts_per_page):
         self.contact_store = contact_store
         self.max_contacts_per_page = max_contacts_per_page
@@ -64,7 +66,7 @@ class RiakContactsForGroupModel(object):
 
         group = yield self.contact_store.get_group(group_id)
 
-        if group.is_smart_group():
+        if group and group.is_smart_group():
             @inlineCallbacks
             def get_page_smart(cursor):
                 keys = yield model_proxy.real_search(group.query)
@@ -109,8 +111,28 @@ class RiakContactsForGroupModel(object):
         max_results = min(max_results, self.max_contacts_per_page)
 
         model_proxy = self.contact_store.contacts
-        cursor, contact_keys = yield _get_page_of_keys(
-            model_proxy, group_id, max_results, cursor, field_name='groups')
+
+        # try to decode the possible smart cursor
+        try:
+            decoded_cursor = cursor.decode('rot13')
+            if decoded_cursor.startswith(self.cursor_keyword):
+                group = yield self.contact_store.get_group(group_id)
+                decoded_cursor = decoded_cursor[len(self.cursor_keyword):]
+                cursor, contact_keys = yield _get_smart_page_of_keys(
+                    model_proxy, max_results, decoded_cursor, group.query)
+                if cursor is not None:
+                    cursor = (self.cursor_keyword + cursor).encode('rot13')
+            else:
+                raise AttributeError
+        # if decode fails, assume riak cursor
+        except AttributeError:
+            cursor, contact_keys = yield _get_page_of_keys(
+                model_proxy, group_id, max_results, cursor, 'groups')
+
+            if cursor is None:
+                group = yield self.contact_store.get_group(group_id)
+                if group and group.is_smart_group():
+                    cursor = self.cursor_keyword.encode('rot13')
 
         contact_list = []
         for key in contact_keys:

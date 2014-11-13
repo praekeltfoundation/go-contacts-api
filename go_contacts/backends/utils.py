@@ -1,3 +1,5 @@
+import itertools
+
 from vumi.persist.model import VumiRiakError
 from go_api.collections.errors import CollectionUsageError
 from go_api.queue import PausingQueueCloseMarker
@@ -39,3 +41,19 @@ def _fill_queue(q, get_page, get_dict, close_queue=True):
 
     if close_queue:
         q.put(PausingQueueCloseMarker())
+
+
+@inlineCallbacks
+def _get_smart_page_of_keys(
+        model_proxy, max_results, cursor, query):
+    contact_keys = yield model_proxy.real_search(query)
+    contact_keys.sort()
+    cursor = None if cursor == '' else cursor
+    page = list(itertools.islice(
+        itertools.dropwhile(lambda key: key <= cursor, contact_keys),
+        max_results))
+    if len(page) == max_results:
+        new_cursor = page[-1]
+    else:
+        new_cursor = None
+    returnValue((new_cursor, page))
