@@ -132,6 +132,20 @@ class ContactsForGroupApiTestMixin(object):
         self.assertTrue(contact4 in data)
 
     @inlineCallbacks
+    def test_stream_bad_id(self):
+        """
+        If the contacts of an invalid group id is requested, an empty stream
+        should be returned.
+        """
+        api = self.mk_api()
+
+        code, data = yield self.request(
+            api, 'GET', '/groups/foo/contacts?stream=true', parser='json_lines')
+
+        self.assertEqual(code, 200)
+        self.assertEqual(data, [])
+
+    @inlineCallbacks
     def test_get_page_empty(self):
         """
         An empty page with None continuation cursor is sent if there are no
@@ -299,3 +313,57 @@ class ContactsForGroupApiTestMixin(object):
         self.assertEqual(code, 400)
         self.assertEqual(data.get('status_code'), 400)
         self.assertEqual(data.get('reason'), 'query parameter not supported')
+
+    @inlineCallbacks
+    def test_page_dynamic_group_contacts(self):
+        """
+        Getting a page of contacts should return both the static and dynamic
+        contacts for a group.
+        """
+        api = self.mk_api()
+
+        group_false = yield self.create_group(api, name=u'Wally')
+        group = yield self.create_group(
+            api, name=u'Foo', query=u'msisdn:\+12345')
+
+        contact1 = yield self.create_contact(
+            api, name=u'Bar', msisdn=u'+12345'
+            )
+        contact2 = yield self.create_contact(
+            api, name=u'Baz', msisdn=u'+54321',
+            groups=[group.get('key')])
+        contact3 = yield self.create_contact(
+            api, name=u'Qux', msisdn=u'+12345'
+            )
+        contact4 = yield self.create_contact(
+            api, name=u'Quux', msisdn=u'+27172',
+            groups=[group_false.get('key')])
+
+        code, data = yield self.request(
+            api, 'GET', '/groups/%s/contacts?max_results=2' % group.get('key'))
+        self.assertEqual(code, 200)
+        cursor = data.get('cursor').encode()
+        contacts = data.get('data')
+
+        self.assertFalse(cursor is None)
+
+        code, data = yield self.request(
+            api, 'GET', '/groups/%s/contacts?max_results=2&cursor=%s' % (
+                group.get('key'), cursor))
+        self.assertEqual(code, 200)
+        cursor = data.get('cursor').encode()
+        self.assertFalse(cursor is None)
+        contacts += data.get('data')
+
+        code, data = yield self.request(
+            api, 'GET', '/groups/%s/contacts?max_results=2&cursor=%s' % (
+                group.get('key'), cursor))
+        self.assertEqual(code, 200)
+        cursor = data.get('cursor')
+        self.assertEqual(cursor, None)
+        contacts += data.get('data')
+
+        self.assertTrue(contact1 in contacts)
+        self.assertTrue(contact2 in contacts)
+        self.assertTrue(contact3 in contacts)
+        self.assertFalse(contact4 in contacts)

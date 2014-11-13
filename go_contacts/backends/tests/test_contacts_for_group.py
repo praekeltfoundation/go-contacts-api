@@ -135,7 +135,45 @@ class TestRiakContactsForGroupModel(VumiTestCase):
         self.assertFalse(contact4 in contacts)
 
     @inlineCallbacks
-    def test_stream_query(self):
+    def test_page_dynamic_group(self):
+        collection = yield self.mk_collection("owner-1")
+
+        group_false = yield self.create_group(collection, name=u'Wally')
+        group = yield self.create_group(
+            collection, name=u'Foo', query=u'msisdn:\+12345')
+
+        contact1 = yield self.create_contact(
+            collection, name=u'Bar', msisdn=u'+12345'
+            )
+        contact2 = yield self.create_contact(
+            collection, name=u'Baz', msisdn=u'+54321',
+            groups=[group.get('key')])
+        contact3 = yield self.create_contact(
+            collection, name=u'Qux', msisdn=u'+12345'
+            )
+        contact4 = yield self.create_contact(
+            collection, name=u'Quux', msisdn=u'+27172',
+            groups=[group_false.get('key')])
+
+        cursor, contacts = yield collection.page(
+            group.get('key'), None, 2, None)
+        self.assertFalse(cursor is None)
+
+        cursor, data = yield collection.page(group.get('key'), cursor, 2, None)
+        self.assertFalse(cursor is None)
+        contacts += data
+
+        cursor, data = yield collection.page(group.get('key'), cursor, 2, None)
+        self.assertEqual(cursor, None)
+        contacts += data
+
+        self.assertTrue(contact1 in contacts)
+        self.assertTrue(contact2 in contacts)
+        self.assertTrue(contact3 in contacts)
+        self.assertFalse(contact4 in contacts)
+
+    @inlineCallbacks
+    def test_stream_dynamic_group(self):
         collection = yield self.mk_collection("owner-1")
 
         group_false = yield self.create_group(collection, name=u'Wally')
