@@ -6,7 +6,7 @@ from twisted.internet.defer import inlineCallbacks, returnValue
 from go.vumitools.contact import ContactStore
 
 from go_api.collections.errors import CollectionUsageError
-from go_api.queue import PausingDeferredQueue
+from go_api.queue import PausingDeferredQueue, PausingQueueCloseMarker
 
 from .contacts import contact_to_dict
 from .utils import _get_page_of_keys, _fill_queue
@@ -28,6 +28,7 @@ class RiakContactsForGroupModel(object):
         self.contact_store = contact_store
         self.max_contacts_per_page = max_contacts_per_page
 
+    @inlineCallbacks
     def stream(self, group_id, query):
         """
         Returns a :class:`PausingDeferredQueue` of all the contacts in the
@@ -59,8 +60,22 @@ class RiakContactsForGroupModel(object):
             return d
 
         q = PausingDeferredQueue(backlog=1, size=max_results)
-        q.fill_d = _fill_queue(q, get_page, get_dict)
-        return q
+        q.fill_d = _fill_queue(q, get_page, get_dict, close_queue=False)
+
+        group = yield self.contact_store.get_group(group_id)
+
+        if group.is_smart_group():
+            @inlineCallbacks
+            def get_page_smart(cursor):
+                keys = yield model_proxy.real_search(group.query)
+                returnValue((None, keys))
+
+            q.fill_d.addCallback(lambda _: _fill_queue(
+                q, get_page_smart, get_dict))
+        else:
+            q.fill_d.addCallback(lambda _: q.put(PausingQueueCloseMarker()))
+
+        returnValue(q)
 
     @inlineCallbacks
     def page(self, group_id, cursor, max_results, query):

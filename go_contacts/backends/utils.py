@@ -21,7 +21,7 @@ def _get_page_of_keys(
 
 
 @inlineCallbacks
-def _fill_queue(q, get_page, get_dict):
+def _fill_queue(q, get_page, get_dict, close_queue=True):
     keys_deferred = get_page(None)
 
     while True:
@@ -37,4 +37,5 @@ def _fill_queue(q, get_page, get_dict):
         if cursor is None:
             break
 
-    q.put(PausingQueueCloseMarker())
+    if close_queue:
+        q.put(PausingQueueCloseMarker())
