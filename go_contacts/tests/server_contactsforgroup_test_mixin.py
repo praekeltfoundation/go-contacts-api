@@ -108,18 +108,18 @@ class ContactsForGroupApiTestMixin(object):
         """
         api = self.mk_api(limit=2)
         group = yield self.create_group(
-            api, name=u'Foo', query=u'msisdn:\+12345')
+            api, name=u'Foo', query=u'msisdn:12345')
         group_false = yield self.create_group(api, name=u'Wally')
 
         contact1 = yield self.create_contact(
-            api, name=u'Bar', msisdn=u'+12345', groups=[group.get('key')])
+            api, name=u'Bar', msisdn=u'12345', groups=[group.get('key')])
         contact2 = yield self.create_contact(
-            api, name=u'Baz', msisdn=u'+54321', groups=[group.get('key')])
+            api, name=u'Baz', msisdn=u'54321', groups=[group.get('key')])
         contact3 = yield self.create_contact(
-            api, name=u'Qux', msisdn=u'+31415',
+            api, name=u'Qux', msisdn=u'31415',
             groups=[group_false.get('key')])
         contact4 = yield self.create_contact(
-            api, name=u'Quux', msisdn=u'+12345')
+            api, name=u'Quux', msisdn=u'12345')
 
         code, data = yield self.request(
             api, 'GET', '/groups/%s/contacts?stream=true' % group.get('key'),
@@ -324,19 +324,19 @@ class ContactsForGroupApiTestMixin(object):
 
         group_false = yield self.create_group(api, name=u'Wally')
         group = yield self.create_group(
-            api, name=u'Foo', query=u'msisdn:\+12345')
+            api, name=u'Foo', query=u'msisdn:12345')
 
         contact1 = yield self.create_contact(
-            api, name=u'Bar', msisdn=u'+12345'
+            api, name=u'Bar', msisdn=u'12345'
             )
         contact2 = yield self.create_contact(
-            api, name=u'Baz', msisdn=u'+54321',
+            api, name=u'Baz', msisdn=u'54321',
             groups=[group.get('key')])
         contact3 = yield self.create_contact(
-            api, name=u'Qux', msisdn=u'+12345'
+            api, name=u'Qux', msisdn=u'12345'
             )
         contact4 = yield self.create_contact(
-            api, name=u'Quux', msisdn=u'+27172',
+            api, name=u'Quux', msisdn=u'27172',
             groups=[group_false.get('key')])
 
         code, data = yield self.request(
@@ -344,24 +344,15 @@ class ContactsForGroupApiTestMixin(object):
         self.assertEqual(code, 200)
         cursor = data.get('cursor').encode()
         contacts = data.get('data')
-
         self.assertFalse(cursor is None)
 
-        code, data = yield self.request(
-            api, 'GET', '/groups/%s/contacts?max_results=2&cursor=%s' % (
-                group.get('key'), cursor))
-        self.assertEqual(code, 200)
-        cursor = data.get('cursor').encode()
-        self.assertFalse(cursor is None)
-        contacts += data.get('data')
-
-        code, data = yield self.request(
-            api, 'GET', '/groups/%s/contacts?max_results=2&cursor=%s' % (
-                group.get('key'), cursor))
-        self.assertEqual(code, 200)
-        cursor = data.get('cursor')
-        self.assertEqual(cursor, None)
-        contacts += data.get('data')
+        while cursor is not None:
+            code, data = yield self.request(
+                api, 'GET', '/groups/%s/contacts?max_results=2&cursor=%s' % (
+                    group.get('key'), cursor.encode()))
+            self.assertEqual(code, 200)
+            cursor = data.get('cursor')
+            contacts += data.get('data')
 
         self.assertTrue(contact1 in contacts)
         self.assertTrue(contact2 in contacts)

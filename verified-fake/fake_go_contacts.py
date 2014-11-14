@@ -218,6 +218,8 @@ class FakeGroups(object):
     """
     Fake implementation of the Groups part of the Contacts API
     """
+    cursor_keyword = 'dynamicgroup'
+
     def __init__(self, groups_data={}, max_groups_per_page=10):
         self.groups_data = groups_data
         self.max_groups_per_page = max_groups_per_page
@@ -301,23 +303,60 @@ class FakeGroups(object):
                 filtered.append(contact)
         return filtered
 
+    def _query_contacts(self, contacts, query):
+        try:
+            field, _, value = query.partition(':')
+            results = []
+            for contact in contacts:
+                if contact[field] == value:
+                    results.append(contact)
+            return results
+        except KeyError:
+            raise FakeContactsError(
+                400, "Invalid query, FakeContacts only supports queries of " +
+                "the form 'field:value'")
+
     def get_contacts_for_group_stream(self, query, key):
         if query is not None:
             raise FakeContactsError(400, "query parameter not supported")
-        return self._filter_contacts(
-            self.fake_contacts.get_all_contacts(None), key)
+        all_contacts = self.fake_contacts.get_all_contacts(None)
+        contacts = self._filter_contacts(all_contacts, key)
+        group = self.groups_data.get(key)
+        if group and group['query'] is not None:
+            contacts.extend(self._query_contacts(all_contacts, group['query']))
+        return contacts
 
     def get_contacts_for_group_page(self, query, key, cursor, max_results):
         if query is not None:
             raise FakeContactsError(400, "query parameter not supported")
-        contacts = self._filter_contacts(
-            self.fake_contacts.get_all_contacts(None), key)
 
+        all_contacts = self.fake_contacts.get_all_contacts(None)
         max_results = (max_results and int(max_results)) or float('inf')
         max_results = min(
             max_results, self.fake_contacts.max_contacts_per_page)
 
-        contacts, cursor = _paginate(contacts, cursor, max_results)
+        try:
+            decoded_cursor = cursor.decode('rot13')
+            if decoded_cursor.startswith(self.cursor_keyword):
+                group = self.groups_data.get(key)
+                decoded_cursor = decoded_cursor[len(self.cursor_keyword):]
+                if decoded_cursor == '':
+                    decoded_cursor = None
+                contacts = self._query_contacts(all_contacts, group['query'])
+                contacts, cursor = _paginate(
+                    contacts, decoded_cursor, max_results)
+                if cursor is not None:
+                    cursor = (self.cursor_keyword + cursor).encode('rot13')
+            else:
+                raise AttributeError
+        except AttributeError:
+            contacts = self._filter_contacts(all_contacts, key)
+            contacts, cursor = _paginate(contacts, cursor, max_results)
+
+            if cursor is None:
+                group = self.groups_data.get(key)
+                if group and group.get('query'):
+                    cursor = self.cursor_keyword.encode('rot13')
 
         return {u'cursor': cursor, u'data': contacts}
 
