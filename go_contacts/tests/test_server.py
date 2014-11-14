@@ -124,8 +124,8 @@ class TestContactsApi(VumiTestCase, ContactsApiTestMixin,
         resp = yield app_helper.request(
             method, path, data=body, headers=headers)
         if parser is not None:
-            data = yield app_helper.request(
-                method, path, data=body, headers=headers, parser=parser)
+            parser_func = getattr(app_helper, '_parse_' + parser)
+            data = yield parser_func(resp)
         else:
             data = yield resp.json()
         returnValue((resp.code, data))
@@ -264,8 +264,8 @@ class TestGroupsApi(VumiTestCase, GroupsApiTestMixin):
         resp = yield app_helper.request(
             method, path, data=body, headers=headers)
         if parser is not None:
-            data = yield app_helper.request(
-                method, path, data=body, headers=headers, parser=parser)
+            parser_func = getattr(app_helper, '_parse_' + parser)
+            data = yield parser_func(resp)
         else:
             data = yield resp.json()
         returnValue((resp.code, data))
@@ -384,8 +384,8 @@ class TestContactsForGroupApi(VumiTestCase, ContactsForGroupApiTestMixin):
         resp = yield app_helper.request(
             method, path, data=body, headers=headers)
         if parser is not None:
-            data = yield app_helper.request(
-                method, path, data=body, headers=headers, parser=parser)
+            parser_func = getattr(app_helper, '_parse_' + parser)
+            data = yield parser_func(resp)
         else:
             data = yield resp.json()
         returnValue((resp.code, data))
