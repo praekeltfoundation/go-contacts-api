@@ -348,6 +348,7 @@ class TestContactsForGroupApi(VumiTestCase, ContactsForGroupApiTestMixin):
             yaml.safe_dump(config_dict, fp)
         return tempfile
 
+    @inlineCallbacks
     def mk_api(self, limit=10):
         configfile = self.mk_config({
             "riak_manager": {
@@ -357,8 +358,8 @@ class TestContactsForGroupApi(VumiTestCase, ContactsForGroupApiTestMixin):
             "max_groups_per_page": limit,
         })
         api = ContactsApi(configfile)
-        self._store(api).contacts.enable_search()
-        return api
+        yield self._store(api).contacts.enable_search()
+        returnValue(api)
 
     @inlineCallbacks
     def create_group(self, api, name, query=None):

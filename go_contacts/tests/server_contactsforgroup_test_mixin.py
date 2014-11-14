@@ -47,7 +47,7 @@ class ContactsForGroupApiTestMixin(object):
         """
         An HTTP error is sent if a request is sent with a query
         """
-        api = self.mk_api()
+        api = yield self.mk_api()
         code, data = yield self.request(
             api, 'GET', '/groups/1/contacts?stream=true&query=foo',
             parser='json')
@@ -61,7 +61,7 @@ class ContactsForGroupApiTestMixin(object):
         An empty list of data is streamed if there are no contacts in the
         contact group.
         """
-        api = self.mk_api()
+        api = yield self.mk_api()
         group = yield self.create_group(api, name=u'Bob')
         code, data = yield self.request(
             api, 'GET', '/groups/%s/contacts?stream=true' % group.get('key'),
@@ -75,7 +75,7 @@ class ContactsForGroupApiTestMixin(object):
         All the contacts should be streamed if there are contacts in the
         contact group
         """
-        api = self.mk_api(limit=2)
+        api = yield self.mk_api(limit=2)
         group = yield self.create_group(api, name=u'Foo')
         group_false = yield self.create_group(api, name=u'Wally')
 
@@ -106,7 +106,7 @@ class ContactsForGroupApiTestMixin(object):
         All the static as well as dynamic contacts for a group should be
         streamed
         """
-        api = self.mk_api(limit=2)
+        api = yield self.mk_api(limit=2)
         group = yield self.create_group(
             api, name=u'Foo', query=u'msisdn:12345')
         group_false = yield self.create_group(api, name=u'Wally')
@@ -137,7 +137,7 @@ class ContactsForGroupApiTestMixin(object):
         If the contacts of an invalid group id is requested, an empty stream
         should be returned.
         """
-        api = self.mk_api()
+        api = yield self.mk_api()
 
         code, data = yield self.request(
             api, 'GET', '/groups/foo/contacts?stream=true', parser='json_lines')
@@ -151,7 +151,7 @@ class ContactsForGroupApiTestMixin(object):
         An empty page with None continuation cursor is sent if there are no
         contacts in the contact group
         """
-        api = self.mk_api()
+        api = yield self.mk_api()
         group = yield self.create_group(api, name=u'Foo')
         code, data = yield self.request(
             api, 'GET', '/groups/%s/contacts' % group.get('key'),
@@ -166,7 +166,7 @@ class ContactsForGroupApiTestMixin(object):
         If all of the contacts fit on a page, it should return that page with
         a None continuation cursor.
         """
-        api = self.mk_api(limit=3)
+        api = yield self.mk_api(limit=3)
         group = yield self.create_group(api, name=u'Foo')
         group2 = yield self.create_group(api, name=u'Waldo')
         contact1 = yield self.create_contact(
@@ -190,7 +190,7 @@ class ContactsForGroupApiTestMixin(object):
         If all of the contacts don't fit on a single page, they should be
         spread across multiple pages. (default page size limit)
         """
-        api = self.mk_api(limit=2)
+        api = yield self.mk_api(limit=2)
         group = yield self.create_group(api, name=u'Foo')
         group2 = yield self.create_group(api, name=u'Waldo')
         contact1 = yield self.create_contact(
@@ -230,7 +230,7 @@ class ContactsForGroupApiTestMixin(object):
         If all of the contacts don't fit on a single page, they should be
         spread across multiple pages. (url parameter page size limit)
         """
-        api = self.mk_api()
+        api = yield self.mk_api()
         group = yield self.create_group(api, name=u'Foo')
         group2 = yield self.create_group(api, name=u'Waldo')
         contact1 = yield self.create_contact(
@@ -270,7 +270,7 @@ class ContactsForGroupApiTestMixin(object):
         """
         If a bad cursor is supplied, an error message should be returned.
         """
-        api = self.mk_api()
+        api = yield self.mk_api()
         group = yield self.create_group(api, name=u'Foo')
         yield self.create_contact(
             api, name=u'Bar', msisdn=u'+12345', groups=[group.get('key')])
@@ -290,7 +290,7 @@ class ContactsForGroupApiTestMixin(object):
         If the contacts of an invalid group id is requested, an empty page
         should be returned.
         """
-        api = self.mk_api()
+        api = yield self.mk_api()
 
         code, data = yield self.request(
             api, 'GET', '/groups/foo/contacts', parser='json')
@@ -305,7 +305,7 @@ class ContactsForGroupApiTestMixin(object):
         If a query is specified, an error should be returned, as queries are
         not yet supported
         """
-        api = self.mk_api()
+        api = yield self.mk_api()
 
         code, data = yield self.request(
             api, 'GET', '/groups/foo/contacts?query=bar', parser='json')
@@ -320,7 +320,7 @@ class ContactsForGroupApiTestMixin(object):
         Getting a page of contacts should return both the static and dynamic
         contacts for a group.
         """
-        api = self.mk_api()
+        api = yield self.mk_api()
 
         group_false = yield self.create_group(api, name=u'Wally')
         group = yield self.create_group(
