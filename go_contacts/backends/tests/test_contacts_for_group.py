@@ -159,13 +159,9 @@ class TestRiakContactsForGroupModel(VumiTestCase):
             group.get('key'), None, 2, None)
         self.assertFalse(cursor is None)
 
-        cursor, data = yield collection.page(group.get('key'), cursor, 2, None)
-        self.assertFalse(cursor is None)
-        contacts += data
-
-        cursor, data = yield collection.page(group.get('key'), cursor, 2, None)
-        self.assertEqual(cursor, None)
-        contacts += data
+        while cursor is not None:
+            cursor, data = yield collection.page(group['key'], cursor, 2, None)
+            contacts += data
 
         self.assertTrue(contact1 in contacts)
         self.assertTrue(contact2 in contacts)
