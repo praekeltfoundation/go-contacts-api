@@ -43,7 +43,7 @@ class TestRiakContactsForGroupModel(VumiTestCase):
     def mk_collection(self, owner_id):
         manager = yield self.persistence_helper.get_riak_manager()
         contact_store = ContactStore(manager, owner_id)
-        contact_store.contacts.enable_search()
+        yield contact_store.contacts.enable_search()
         collection = RiakContactsForGroupModel(contact_store, 10)
         returnValue(collection)
 
