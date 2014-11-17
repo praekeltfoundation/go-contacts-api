@@ -67,10 +67,10 @@ class RiakContactsForGroupModel(object):
         group = yield self.contact_store.get_group(group_id)
 
         if group and group.is_smart_group():
-            @inlineCallbacks
             def get_page_smart(cursor):
-                keys = yield model_proxy.real_search(group.query)
-                returnValue((None, keys))
+                keys_d = model_proxy.real_search(group.query)
+                keys_d.addCallback(lambda keys: (None, keys))
+                return keys_d
 
             q.fill_d.addCallback(lambda _: _fill_queue(
                 q, get_page_smart, get_dict))
