@@ -1,12 +1,12 @@
 """
 Riak contacts for group handler and collection.
 """
-from twisted.internet.defer import inlineCallbacks, returnValue
+from twisted.internet.defer import inlineCallbacks, returnValue, Deferred
 
 from go.vumitools.contact import ContactStore
 
 from go_api.collections.errors import CollectionUsageError
-from go_api.queue import PausingDeferredQueue, PausingQueueCloseMarker
+from go_api.queue import PausingDeferredQueue
 
 from .contacts import contact_to_dict
 from .utils import _get_page_of_keys, _fill_queue, _get_smart_page_of_keys
@@ -50,11 +50,21 @@ class RiakContactsForGroupModel(object):
 
         max_results = self.max_contacts_per_page
         model_proxy = self.contact_store.contacts
+        group = yield self.contact_store.get_group(group_id)
 
         def get_page(cursor):
             return _get_page_of_keys(
                 model_proxy, group_id, max_results, cursor,
                 field_name='groups')
+
+        def get_page_smart(cursor):
+            if group and group.is_smart_group():
+                keys_d = model_proxy.real_search(group.query)
+                keys_d.addCallback(lambda keys: (None, keys))
+            else:
+                keys_d = Deferred()
+                keys_d.callback((None, []))
+            return keys_d
 
         def get_dict(key):
             d = self.contact_store.get_contact_by_key(key)
@@ -62,20 +72,11 @@ class RiakContactsForGroupModel(object):
             return d
 
         q = PausingDeferredQueue(backlog=1, size=max_results)
+        # Static contacts
         q.fill_d = _fill_queue(q, get_page, get_dict, close_queue=False)
-
-        group = yield self.contact_store.get_group(group_id)
-
-        if group and group.is_smart_group():
-            def get_page_smart(cursor):
-                keys_d = model_proxy.real_search(group.query)
-                keys_d.addCallback(lambda keys: (None, keys))
-                return keys_d
-
-            q.fill_d.addCallback(lambda _: _fill_queue(
-                q, get_page_smart, get_dict))
-        else:
-            q.fill_d.addCallback(lambda _: q.put(PausingQueueCloseMarker()))
+        # Dynamic contacts
+        q.fill_d.addCallback(lambda _: _fill_queue(
+            q, get_page_smart, get_dict, close_queue=True))
 
         returnValue(q)
 
