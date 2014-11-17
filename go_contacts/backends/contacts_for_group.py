@@ -1,7 +1,7 @@
 """
 Riak contacts for group handler and collection.
 """
-from twisted.internet.defer import inlineCallbacks, returnValue, Deferred
+from twisted.internet.defer import inlineCallbacks, returnValue, succeed
 
 from go.vumitools.contact import ContactStore
 
@@ -62,8 +62,7 @@ class RiakContactsForGroupModel(object):
                 keys_d = model_proxy.real_search(group.query)
                 keys_d.addCallback(lambda keys: (None, keys))
             else:
-                keys_d = Deferred()
-                keys_d.callback((None, []))
+                keys_d = succeed((None, []))
             return keys_d
 
         def get_dict(key):
