@@ -282,7 +282,7 @@ class ContactsForGroupApiTestMixin(object):
         self.assertEqual(code, 400)
         self.assertEqual(data.get('status_code'), 400)
         self.assertEqual(
-            data.get('reason'), u"Riak error, possible invalid cursor: u'foo'")
+            data.get('reason'), u"Invalid cursor: u'foo'")
 
     @inlineCallbacks
     def test_get_page_invalid_group_id(self):

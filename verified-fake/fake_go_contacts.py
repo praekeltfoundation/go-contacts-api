@@ -218,7 +218,8 @@ class FakeGroups(object):
     """
     Fake implementation of the Groups part of the Contacts API
     """
-    cursor_keyword = 'dynamicgroup'
+    dynamic_cursor_keyword = 'dynamicgroup'
+    static_cursor_keyword = 'staticgroup'
 
     def __init__(self, groups_data={}, max_groups_per_page=10):
         self.groups_data = groups_data
@@ -335,28 +336,35 @@ class FakeGroups(object):
         max_results = min(
             max_results, self.fake_contacts.max_contacts_per_page)
 
-        try:
+        if cursor is not None:
             decoded_cursor = cursor.decode('rot13')
-            if decoded_cursor.startswith(self.cursor_keyword):
-                group = self.groups_data.get(key)
-                decoded_cursor = decoded_cursor[len(self.cursor_keyword):]
-                if decoded_cursor == '':
-                    decoded_cursor = None
-                contacts = self._query_contacts(all_contacts, group['query'])
-                contacts, cursor = _paginate(
-                    contacts, decoded_cursor, max_results)
-                if cursor is not None:
-                    cursor = (self.cursor_keyword + cursor).encode('rot13')
-            else:
-                raise AttributeError
-        except AttributeError:
+        else:
+            decoded_cursor = self.static_cursor_keyword
+
+        if decoded_cursor.startswith(self.dynamic_cursor_keyword):
+            group = self.groups_data.get(key)
+            decoded_cursor = decoded_cursor[len(self.dynamic_cursor_keyword):]
+            if decoded_cursor == '':
+                decoded_cursor = None
+            contacts = self._query_contacts(all_contacts, group['query'])
+            contacts, cursor = _paginate(
+                contacts, decoded_cursor, max_results)
+            if cursor is not None:
+                cursor = (self.dynamic_cursor_keyword + cursor).encode('rot13')
+        elif decoded_cursor.startswith(self.static_cursor_keyword):
+            decoded_cursor = decoded_cursor[len(self.static_cursor_keyword):]
+            decoded_cursor = None if decoded_cursor == '' else decoded_cursor
             contacts = self._filter_contacts(all_contacts, key)
-            contacts, cursor = _paginate(contacts, cursor, max_results)
+            contacts, cursor = _paginate(contacts, decoded_cursor, max_results)
 
             if cursor is None:
                 group = self.groups_data.get(key)
                 if group and group.get('query'):
-                    cursor = self.cursor_keyword.encode('rot13')
+                    cursor = self.dynamic_cursor_keyword.encode('rot13')
+            else:
+                cursor = (self.static_cursor_keyword + cursor).encode('rot13')
+        else:
+            raise FakeContactsError(400, "Invalid cursor: %r" % cursor)
 
         return {u'cursor': cursor, u'data': contacts}
 
