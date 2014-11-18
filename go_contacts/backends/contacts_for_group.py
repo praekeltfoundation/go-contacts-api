@@ -58,9 +58,21 @@ class RiakContactsForGroupModel(object):
                 field_name='groups')
 
         def get_page_smart(cursor):
+            def create_page_of_keys(keys, cursor_old):
+                if len(keys) == 0:
+                    return None, keys
+                cursor = self.cursor_keyword + str(cursor_old + len(keys))
+                cursor = cursor.encode('rot13')
+                return cursor, keys
+
             if group and group.is_smart_group():
-                keys_d = model_proxy.real_search(group.query)
-                keys_d.addCallback(lambda keys: (None, keys))
+                if cursor is None:
+                    cursor = 0
+                else:
+                    cursor = int(cursor[len(self.cursor_keyword):])
+                keys_d = model_proxy.real_search(
+                    group.query, rows=max_results, start=cursor)
+                keys_d.addCallback(create_page_of_keys, cursor)
             else:
                 keys_d = succeed((None, []))
             return keys_d
