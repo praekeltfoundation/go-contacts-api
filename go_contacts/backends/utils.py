@@ -46,14 +46,10 @@ def _fill_queue(q, get_page, get_dict, close_queue=True):
 @inlineCallbacks
 def _get_smart_page_of_keys(
         model_proxy, max_results, cursor, query):
-    contact_keys = yield model_proxy.real_search(query)
-    contact_keys.sort()
-    cursor = None if cursor == '' else cursor
-    page = list(itertools.islice(
-        itertools.dropwhile(lambda key: key <= cursor, contact_keys),
-        max_results))
-    if len(page) == max_results:
-        new_cursor = page[-1]
-    else:
+    contact_keys = yield model_proxy.real_search(
+        query, rows=max_results, start=cursor)
+    if len(contact_keys) == 0:
         new_cursor = None
-    returnValue((new_cursor, page))
+    else:
+        new_cursor = cursor + len(contact_keys)
+    returnValue((new_cursor, contact_keys))
