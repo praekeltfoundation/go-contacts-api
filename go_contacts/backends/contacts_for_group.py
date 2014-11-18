@@ -24,7 +24,8 @@ class ContactsForGroupBackend(object):
 
 
 class RiakContactsForGroupModel(object):
-    cursor_keyword = 'dynamicgroup'
+    dynamic_cursor_keyword = 'dynamicgroup'
+    static_cursor_keyword = 'staticgroup'
 
     def __init__(self, contact_store, max_contacts_per_page):
         self.contact_store = contact_store
@@ -61,7 +62,8 @@ class RiakContactsForGroupModel(object):
             def create_page_of_keys(keys, cursor_old):
                 if len(keys) == 0:
                     return None, keys
-                cursor = self.cursor_keyword + str(cursor_old + len(keys))
+                cursor = (
+                    self.dynamic_cursor_keyword + str(cursor_old + len(keys)))
                 cursor = cursor.encode('rot13')
                 return cursor, keys
 
@@ -69,7 +71,7 @@ class RiakContactsForGroupModel(object):
                 if cursor is None:
                     cursor = 0
                 else:
-                    cursor = int(cursor[len(self.cursor_keyword):])
+                    cursor = int(cursor[len(self.dynamic_cursor_keyword):])
                 keys_d = model_proxy.real_search(
                     group.query, rows=max_results, start=cursor)
                 keys_d.addCallback(create_page_of_keys, cursor)
@@ -123,28 +125,36 @@ class RiakContactsForGroupModel(object):
         max_results = min(max_results, self.max_contacts_per_page)
 
         model_proxy = self.contact_store.contacts
-
-        # try to decode the possible smart cursor
-        try:
+        if cursor is not None:
             decoded_cursor = cursor.decode('rot13')
-            if decoded_cursor.startswith(self.cursor_keyword):
-                group = yield self.contact_store.get_group(group_id)
-                decoded_cursor = decoded_cursor[len(self.cursor_keyword):]
-                cursor, contact_keys = yield _get_smart_page_of_keys(
-                    model_proxy, max_results, decoded_cursor, group.query)
-                if cursor is not None:
-                    cursor = (self.cursor_keyword + cursor).encode('rot13')
-            else:
-                raise AttributeError
-        # if decode fails, assume riak cursor
-        except AttributeError:
-            cursor, contact_keys = yield _get_page_of_keys(
-                model_proxy, group_id, max_results, cursor, 'groups')
+        else:
+            decoded_cursor = self.static_cursor_keyword
 
+        if decoded_cursor.startswith(self.dynamic_cursor_keyword):
+            decoded_cursor = decoded_cursor[len(self.dynamic_cursor_keyword):]
+            group = yield self.contact_store.get_group(group_id)
+            cursor, contact_keys = yield _get_smart_page_of_keys(
+                model_proxy, max_results, decoded_cursor, group.query)
+            if cursor is not None:
+                cursor = (self.dynamic_cursor_keyword + cursor).encode('rot13')
+
+        elif decoded_cursor.startswith(self.static_cursor_keyword):
+            decoded_cursor = decoded_cursor[len(self.static_cursor_keyword):]
+            if decoded_cursor == '':
+                decoded_cursor = None
+            cursor, contact_keys = yield _get_page_of_keys(
+                model_proxy, group_id, max_results, decoded_cursor, 'groups')
+            # If it's the end of static, move to dynamic
             if cursor is None:
                 group = yield self.contact_store.get_group(group_id)
                 if group and group.is_smart_group():
-                    cursor = self.cursor_keyword.encode('rot13')
+                    cursor = self.dynamic_cursor_keyword.encode('rot13')
+            else:
+                cursor = (self.static_cursor_keyword + cursor).encode('rot13')
+
+        else:
+            raise CollectionUsageError(
+                'Invalid cursor: %r' % cursor)
 
         contact_list = []
         for key in contact_keys:
