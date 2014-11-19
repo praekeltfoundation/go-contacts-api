@@ -21,7 +21,7 @@ def _get_page_of_keys(
 
 
 @inlineCallbacks
-def _fill_queue(q, get_page, get_dict):
+def _fill_queue(q, get_page, get_dict, close_queue=True):
     keys_deferred = get_page(None)
 
     while True:
@@ -37,4 +37,18 @@ def _fill_queue(q, get_page, get_dict):
         if cursor is None:
             break
 
-    q.put(PausingQueueCloseMarker())
+    if close_queue:
+        q.put(PausingQueueCloseMarker())
+
+
+@inlineCallbacks
+def _get_smart_page_of_keys(model_proxy, max_results, cursor, query):
+    contact_keys = yield model_proxy.real_search(
+        query, rows=max_results, start=cursor)
+    if cursor is None:
+        cursor = 0
+    if len(contact_keys) == 0:
+        new_cursor = None
+    else:
+        new_cursor = cursor + len(contact_keys)
+    returnValue((new_cursor, contact_keys))

@@ -5,6 +5,7 @@ These tests are run against both the real implementation of the API and the
 verified fake implementation in order to verify that both behave correctly.
 """
 
+import json
 import yaml
 
 from twisted.internet.defer import inlineCallbacks, returnValue
@@ -121,13 +122,17 @@ class TestContactsApi(VumiTestCase, ContactsApiTestMixin,
         if auth:
             headers["X-Owner-ID"] = self.OWNER_ID.encode("utf-8")
         app_helper = AppHelper(app=api)
+        # We always want the response code, so we can't use app_helper's parser
+        # stuff.
         resp = yield app_helper.request(
             method, path, data=body, headers=headers)
-        if parser is not None:
-            data = yield app_helper.request(
-                method, path, data=body, headers=headers, parser=parser)
-        else:
+        if parser in (None, "json"):
             data = yield resp.json()
+        elif parser == "json_lines":
+            content = yield resp.content()
+            data = [json.loads(l) for l in content.splitlines()]
+        else:
+            raise ValueError("Unknown parser: %s" % (parser,))
         returnValue((resp.code, data))
 
     def _store(self, api):
@@ -261,13 +266,17 @@ class TestGroupsApi(VumiTestCase, GroupsApiTestMixin):
         if auth:
             headers["X-Owner-ID"] = self.OWNER_ID.encode("utf-8")
         app_helper = AppHelper(app=api)
+        # We always want the response code, so we can't use app_helper's parser
+        # stuff.
         resp = yield app_helper.request(
             method, path, data=body, headers=headers)
-        if parser is not None:
-            data = yield app_helper.request(
-                method, path, data=body, headers=headers, parser=parser)
-        else:
+        if parser in (None, "json"):
             data = yield resp.json()
+        elif parser == "json_lines":
+            content = yield resp.content()
+            data = [json.loads(l) for l in content.splitlines()]
+        else:
+            raise ValueError("Unknown parser: %s" % (parser,))
         returnValue((resp.code, data))
 
     @inlineCallbacks
@@ -348,6 +357,7 @@ class TestContactsForGroupApi(VumiTestCase, ContactsForGroupApiTestMixin):
             yaml.safe_dump(config_dict, fp)
         return tempfile
 
+    @inlineCallbacks
     def mk_api(self, limit=10):
         configfile = self.mk_config({
             "riak_manager": {
@@ -356,7 +366,9 @@ class TestContactsForGroupApi(VumiTestCase, ContactsForGroupApiTestMixin):
             "max_contacts_per_page": limit,
             "max_groups_per_page": limit,
         })
-        return ContactsApi(configfile)
+        api = ContactsApi(configfile)
+        yield self._store(api).contacts.enable_search()
+        returnValue(api)
 
     @inlineCallbacks
     def create_group(self, api, name, query=None):
@@ -379,13 +391,17 @@ class TestContactsForGroupApi(VumiTestCase, ContactsForGroupApiTestMixin):
         if auth:
             headers["X-Owner-ID"] = self.OWNER_ID.encode("utf-8")
         app_helper = AppHelper(app=api)
+        # We always want the response code, so we can't use app_helper's parser
+        # stuff.
         resp = yield app_helper.request(
             method, path, data=body, headers=headers)
-        if parser is not None:
-            data = yield app_helper.request(
-                method, path, data=body, headers=headers, parser=parser)
-        else:
+        if parser in (None, "json"):
             data = yield resp.json()
+        elif parser == "json_lines":
+            content = yield resp.content()
+            data = [json.loads(l) for l in content.splitlines()]
+        else:
+            raise ValueError("Unknown parser: %s" % (parser,))
         returnValue((resp.code, data))
 
     @inlineCallbacks
