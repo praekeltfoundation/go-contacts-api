@@ -193,7 +193,7 @@ class FakeContacts(object):
         self.contacts_data.pop(contact_key)
         return contact
 
-    def request(self, request, contact_key, query):
+    def request(self, request, contact_key, query, contact_store):
         if request.method == "POST":
             if contact_key is None or contact_key is "":
                 return self.create_contact(request.body)
@@ -218,6 +218,9 @@ class FakeGroups(object):
     """
     Fake implementation of the Groups part of the Contacts API
     """
+    dynamic_cursor_keyword = 'dynamicgroup'
+    static_cursor_keyword = 'staticgroup'
+
     def __init__(self, groups_data={}, max_groups_per_page=10):
         self.groups_data = groups_data
         self.max_groups_per_page = max_groups_per_page
@@ -279,6 +282,92 @@ class FakeGroups(object):
 
         return {u'cursor': cursor, u'data': groups}
 
+    def get_contacts_for_group(self, key, query):
+        stream = query.get('stream', None)
+        stream = stream and stream[0]
+        q = query.get('query', None)
+        q = q and q[0]
+        if stream == 'true':
+            return self.get_contacts_for_group_stream(q, key)
+        else:
+            cursor = query.get('cursor', None)
+            cursor = cursor and cursor[0]
+            max_results = query.get('max_results', None)
+            max_results = max_results and max_results[0]
+            return self.get_contacts_for_group_page(
+                q, key, cursor, max_results)
+
+    def _filter_contacts(self, contacts, group_key):
+        filtered = []
+        for contact in contacts:
+            if group_key in contact.get('groups'):
+                filtered.append(contact)
+        return filtered
+
+    def _query_contacts(self, contacts, query):
+        try:
+            field, _, value = query.partition(':')
+            results = []
+            for contact in contacts:
+                if contact[field] == value:
+                    results.append(contact)
+            return results
+        except KeyError:
+            raise FakeContactsError(
+                400, "Invalid query, FakeContacts only supports queries of " +
+                "the form 'field:value'")
+
+    def get_contacts_for_group_stream(self, query, key):
+        if query is not None:
+            raise FakeContactsError(400, "query parameter not supported")
+        all_contacts = self.fake_contacts.get_all_contacts(None)
+        contacts = self._filter_contacts(all_contacts, key)
+        group = self.groups_data.get(key)
+        if group and group['query'] is not None:
+            contacts.extend(self._query_contacts(all_contacts, group['query']))
+        return contacts
+
+    def get_contacts_for_group_page(self, query, key, cursor, max_results):
+        if query is not None:
+            raise FakeContactsError(400, "query parameter not supported")
+
+        all_contacts = self.fake_contacts.get_all_contacts(None)
+        max_results = (max_results and int(max_results)) or float('inf')
+        max_results = min(
+            max_results, self.fake_contacts.max_contacts_per_page)
+
+        if cursor is not None:
+            decoded_cursor = cursor.decode('rot13')
+        else:
+            decoded_cursor = self.static_cursor_keyword
+
+        if decoded_cursor.startswith(self.dynamic_cursor_keyword):
+            group = self.groups_data.get(key)
+            decoded_cursor = decoded_cursor[len(self.dynamic_cursor_keyword):]
+            if decoded_cursor == '':
+                decoded_cursor = None
+            contacts = self._query_contacts(all_contacts, group['query'])
+            contacts, cursor = _paginate(
+                contacts, decoded_cursor, max_results)
+            if cursor is not None:
+                cursor = (self.dynamic_cursor_keyword + cursor).encode('rot13')
+        elif decoded_cursor.startswith(self.static_cursor_keyword):
+            decoded_cursor = decoded_cursor[len(self.static_cursor_keyword):]
+            decoded_cursor = None if decoded_cursor == '' else decoded_cursor
+            contacts = self._filter_contacts(all_contacts, key)
+            contacts, cursor = _paginate(contacts, decoded_cursor, max_results)
+
+            if cursor is None:
+                group = self.groups_data.get(key)
+                if group and group.get('query'):
+                    cursor = self.dynamic_cursor_keyword.encode('rot13')
+            else:
+                cursor = (self.static_cursor_keyword + cursor).encode('rot13')
+        else:
+            raise FakeContactsError(400, "Invalid cursor: %r" % cursor)
+
+        return {u'cursor': cursor, u'data': contacts}
+
     def update_group(self, group_key, group_data):
         group_data = _data_to_json(group_data)
         group = self.get_group(group_key)
@@ -305,7 +394,8 @@ class FakeGroups(object):
             max_results = max_results and max_results[0]
             return self.get_page_groups(q, cursor, max_results)
 
-    def request(self, request, contact_key, query):
+    def request(self, request, contact_key, query, contact_store):
+        self.fake_contacts = contact_store
         if request.method == "POST":
             if contact_key is None or contact_key is "":
                 return self.create_group(request.body)
@@ -314,6 +404,9 @@ class FakeGroups(object):
         elif request.method == "GET":
             if contact_key is None or contact_key == "":
                 return self.get_all(query)
+            elif contact_key.endswith('contacts'):
+                key = contact_key[:contact_key.find('/')]
+                return self.get_contacts_for_group(key, query)
             else:
                 return self.get_group(contact_key)
         elif request.method == "PUT":
@@ -365,7 +458,8 @@ class FakeContactsApi(object):
         try:
             query_string = parse_qs(urllib.unquote(url.query).decode('utf8'))
             return self.build_response(
-                handler.request(request, contact_key, query_string))
+                handler.request(
+                    request, contact_key, query_string, self.contacts))
         except FakeContactsError as err:
             return self.build_response(err.data, err.code)
 
