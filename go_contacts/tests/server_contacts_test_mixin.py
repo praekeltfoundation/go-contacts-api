@@ -434,3 +434,17 @@ class ContactsApiTestMixin(object):
             data.get(u'reason'),
             u"Query field must be one of: ['msisdn', 'wechat_id', 'gtalk_id',"
             " 'twitter_handle', 'mxit_id']")
+
+    @inlineCallbacks
+    def test_page_with_query(self):
+        """
+        If a valid query is supplied, the contact should be returned
+        """
+        api = self.mk_api()
+        contact = yield self.create_contact(api, name=u'Bob', msisdn=u'+12345')
+
+        code, data = yield self.request(
+            api, 'GET', '/contacts/?q="msisdn=+12345"')
+        self.assertEqual(code, 200)
+        self.assertEqual(data.get(u'cursor'), None)
+        self.assertEqual(data.get('data'), [contact])
