@@ -100,6 +100,32 @@ class RiakContactsCollection(object):
             res[value['field']].append(cls)
         return res
 
+    @inlineCallbacks
+    def _get_contacts_by_query(self, query):
+        try:
+            [field, value] = query.split('=')
+        except ValueError:
+            raise CollectionUsageError(
+                "Query must be of the form 'field=value'")
+        valid_keys = self.delivery_classes.keys()
+        if field not in valid_keys:
+            raise CollectionUsageError(
+                "Query field must be one of: %s" % valid_keys)
+
+        contacts = []
+        for cls in self.delivery_classes[field]:
+            try:
+                contact = (
+                    yield self.contact_store.contacts.contact_for_addr(
+                        cls, value, create=False))
+                contacts.append(contact)
+            except ContactNotFoundError:
+                pass
+        if not contacts:
+            raise ContactNotFoundError(
+                'Contact with %s %s not found' % (field, value))
+        returnValue(contacts)
+
     def stream(self, query):
         """
         Return a :class:`PausingDeferredQueue` of the objects in the
@@ -109,8 +135,7 @@ class RiakContactsCollection(object):
 
         :param unicode query:
             Search term requested through the API. Defaults to ``None`` if no
-            search term was requested. Currently not implemented and will raise
-            a CollectionUsageError if not ``None``.
+            search term was requested. Query must be of the form `field=value`.
         """
         if query is not None:
             raise CollectionUsageError("query parameter not supported")
@@ -155,7 +180,8 @@ class RiakContactsCollection(object):
         :rtype: tuple
         """
         if query is not None:
-            raise CollectionUsageError("query parameter not supported")
+            contacts = yield self._get_contacts_by_query(query)
+            returnValue((None, contacts))
 
         max_results = max_results or float('inf')
         max_results = min(max_results, self.max_contacts_per_page)
