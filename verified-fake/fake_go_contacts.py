@@ -161,7 +161,8 @@ class FakeContacts(object):
                 400, "Query must be of the form 'field=value'")
         if field not in self.valid_search_keys:
             raise FakeContactsError(
-                400, "Query field must be one of: %s" % self.valid_search_keys)
+                400, "Query field must be one of: %s" 
+                % sorted(self.valid_search_keys))
         contacts = [
             contact for key, contact in self.contacts_data.iteritems() if
             contact[field] == value]
