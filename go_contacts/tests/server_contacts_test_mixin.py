@@ -407,13 +407,30 @@ class ContactsApiTestMixin(object):
             u"Riak error, possible invalid cursor: u'bad-id'")
 
     @inlineCallbacks
-    def test_page_query(self):
+    def test_page_invalid_query_format(self):
         """
-        If a query parameter is supplied, a CollectionUsageError should be
-        thrown, as querys are not yet supported.
+        If an invalid query format is supplied, a CollectionUsageError should
+        be thrown.
         """
         api = self.mk_api()
         code, data = yield self.request(api, 'GET', '/contacts/?query=foo')
         self.assertEqual(code, 400)
         self.assertEqual(data.get(u'status_code'), 400)
-        self.assertEqual(data.get(u'reason'), u'query parameter not supported')
+        self.assertEqual(
+            data.get(u'reason'), u"Query must be of the form 'field=value'")
+
+    @inlineCallbacks
+    def test_page_invalid_query_parameter(self):
+        """
+        If an invalid query parameter is supplied, a CollectionUsageError
+        should be thrown.
+        """
+        api = self.mk_api()
+        code, data = yield self.request(
+            api, 'GET', '/contacts/?query="foo=bar"')
+        self.assertEqual(code, 400)
+        self.assertEqual(data.get(u'status_code'), 400)
+        self.assertEqual(
+            data.get(u'reason'),
+            u"Query field must be one of: ['msisdn', 'wechat_id', 'gtalk_id',"
+            " 'twitter_handle', 'mxit_id']")
