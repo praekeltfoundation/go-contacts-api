@@ -135,7 +135,8 @@ class RiakContactsCollection(object):
 
         :param unicode query:
             Search term requested through the API. Defaults to ``None`` if no
-            search term was requested. Query must be of the form `field=value`.
+            search term was requested. Currently not implemented and will raise
+            a CollectionUsageError if not ``None``.
         """
         if query is not None:
             raise CollectionUsageError("query parameter not supported")
@@ -171,7 +172,7 @@ class RiakContactsCollection(object):
             to ``None`` if no limit was specified.
         :param unicode query:
             Search term requested through the API. Defaults to ``None`` if no
-            search term was requested.
+            search term was requested. Query must be of the form `field=value`.
 
         :return:
             (cursor, data). ``cursor`` is an opaque string that refers to the

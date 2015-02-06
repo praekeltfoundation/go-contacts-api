@@ -173,7 +173,7 @@ class FakeContacts(object):
 
     def get_all_contacts(self, query):
         if query is not None:
-            raise FakeContactsError(400, 'query parameter not supported')
+            raise FakeContactsError(400, "query parameter not supported")
         return self.contacts_data.values()
 
     def get_all(self, query):
