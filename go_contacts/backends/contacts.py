@@ -1,6 +1,7 @@
 """
 Riak contacts backend and collection.
 """
+from collections import defaultdict
 
 from twisted.internet.defer import inlineCallbacks, returnValue
 from zope.interface import implementer
@@ -9,6 +10,7 @@ from vumi.persist.fields import ValidationError
 
 from go.vumitools.contact import (
     ContactStore, ContactNotFoundError, Contact)
+from go.vumitools.contact.models import DELIVERY_CLASSES
 
 from go_api.collections import ICollection
 from go_api.collections.errors import (
@@ -52,6 +54,7 @@ class RiakContactsCollection(object):
     def __init__(self, contact_store, max_contacts_per_page):
         self.contact_store = contact_store
         self.max_contacts_per_page = max_contacts_per_page
+        self.delivery_classes = self._reverse_delivery_class()
 
     @staticmethod
     def _pick_fields(data, keys):
@@ -90,6 +93,12 @@ class RiakContactsCollection(object):
         deferred instead of the iterable.
         """
         raise NotImplementedError()
+
+    def _reverse_delivery_class(self):
+        res = defaultdict(list)
+        for cls, value in DELIVERY_CLASSES.iteritems():
+            res[value['field']].append(cls)
+        return res
 
     def stream(self, query):
         """
