@@ -112,19 +112,14 @@ class RiakContactsCollection(object):
             raise CollectionUsageError(
                 "Query field must be one of: %s" % valid_keys)
 
-        contacts = []
-        for cls in self.delivery_classes[field]:
-            try:
-                contact = (
-                    yield self.contact_store.contacts.contact_for_addr(
-                        cls, value, create=False))
-                contacts.append(contact)
-            except ContactNotFoundError:
-                pass
-        if not contacts:
-            raise ContactNotFoundError(
-                'Contact with %s %s not found' % (field, value))
-        returnValue(contacts)
+        try:
+            contact = yield self.contact_store.contact_for_addr(
+                self.delivery_classes[field][0], value, create=False)
+        except ContactNotFoundError:
+            raise CollectionObjectNotFound(
+                'Contact with %s %s' % (field, value))
+
+        returnValue([contact_to_dict(contact)])
 
     def stream(self, query):
         """
