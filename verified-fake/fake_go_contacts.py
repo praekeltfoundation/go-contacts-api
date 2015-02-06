@@ -162,13 +162,13 @@ class FakeContacts(object):
         if field not in self.valid_search_keys:
             raise FakeContactsError(
                 400, "Query field must be one of: %s" % self.valid_search_keys)
-
         contacts = [
-            contact for contact in self.contacts_data if
+            contact for key, contact in self.contacts_data.iteritems() if
             contact[field] == value]
         if not contacts:
             raise FakeContactsError(
-                400, 'Contact with %s %s not found' % (field, value))
+                400,
+                "Object u'Contact with %s %s' not found." % (field, value))
         return contacts
 
     def get_all_contacts(self, query):
@@ -479,7 +479,7 @@ class FakeContactsApi(object):
             self.build_response("", 404)
 
         try:
-            query_string = parse_qs(urllib.unquote(url.query).decode('utf8'))
+            query_string = parse_qs(url.query.decode('utf8'))
             return self.build_response(
                 handler.request(
                     request, contact_key, query_string, self.contacts))
