@@ -95,6 +95,8 @@ class FakeContacts(object):
     def __init__(self, contacts_data={}, max_contacts_per_page=10):
         self.contacts_data = contacts_data
         self.max_contacts_per_page = max_contacts_per_page
+        self.valid_search_keys = [
+            'msisdn', 'wechat_id', 'gtalk_id', 'twitter_handle', 'mxit_id']
 
     @staticmethod
     def make_contact_dict(fields):
@@ -151,9 +153,27 @@ class FakeContacts(object):
                 404, u"Contact %r not found." % (contact_key,))
         return contact
 
+    def _get_contacts_from_query(self, query):
+        try:
+            [field, value] = query.split('=')
+        except ValueError:
+            raise FakeContactsError(
+                400, "Query must be of the form 'field=value'")
+        if field not in self.valid_search_keys:
+            raise FakeContactsError(
+                400, "Query field must be one of: %s" % self.valid_search_keys)
+
+        contacts = [
+            contact for contact in self.contacts_data if
+            contact[field] == value]
+        if not contacts:
+            raise FakeContactsError(
+                400, 'Contact with %s %s not found' % (field, value))
+        return contacts
+
     def get_all_contacts(self, query):
         if query is not None:
-            raise FakeContactsError(400, "query parameter not supported")
+            raise FakeContactsError(400, 'query parameter not supported')
         return self.contacts_data.values()
 
     def get_all(self, query):
@@ -171,6 +191,9 @@ class FakeContacts(object):
             return self.get_page_contacts(q, cursor, max_results)
 
     def get_page_contacts(self, query, cursor, max_results):
+        if query is not None:
+            return {
+                u'cursor': None, u'data': self._get_contacts_from_query(query)}
         contacts = self.get_all_contacts(query)
 
         max_results = (max_results and int(max_results)) or float('inf')
