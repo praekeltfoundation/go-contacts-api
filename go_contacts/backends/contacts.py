@@ -107,10 +107,10 @@ class RiakContactsCollection(object):
         except ValueError:
             raise CollectionUsageError(
                 "Query must be of the form 'field=value'")
-        valid_keys = self.delivery_classes.keys()
-        if field not in valid_keys:
+        if field not in self.delivery_classes:
             raise CollectionUsageError(
-                "Query field must be one of: %s" % valid_keys)
+                "Query field must be one of: %s" %
+                    sorted(self.delivery_classes.keys()))
 
         try:
             contact = yield self.contact_store.contact_for_addr(
