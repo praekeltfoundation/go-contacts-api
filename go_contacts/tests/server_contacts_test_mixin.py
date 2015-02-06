@@ -442,9 +442,26 @@ class ContactsApiTestMixin(object):
         """
         api = self.mk_api()
         contact = yield self.create_contact(api, name=u'Bob', msisdn=u'+12345')
+        yield self.create_contact(api, name=u'Sue', msisdn=u'+54321')
 
         code, data = yield self.request(
-            api, 'GET', '/contacts/?q="msisdn=+12345"')
+            api, 'GET', '/contacts/?query=msisdn=%2B12345')
         self.assertEqual(code, 200)
         self.assertEqual(data.get(u'cursor'), None)
         self.assertEqual(data.get('data'), [contact])
+
+    @inlineCallbacks
+    def test_page_with_query_no_contact_found(self):
+        """
+        If no contact exists that fulfills the query, a ContactNotFoundError
+        should be thrown.
+        """
+        api = self.mk_api()
+
+        code, data = yield self.request(
+            api, 'GET', '/contacts/?query=msisdn=bar')
+        self.assertEqual(code, 400)
+        self.assertEqual(data.get(u'status_code'), 400)
+        self.assertEqual(
+            data.get('reason'),
+            u"Object u'Contact with msisdn bar' not found.")
