@@ -2,7 +2,7 @@ from setuptools import setup
 
 setup(
     name="fake-go-contacts",
-    version="0.1.8",
+    version="0.1.9a",
     url='http://github.com/praekelt/go-contacts-api',
     license='BSD',
     description="A verified fake implementation of go-contacts for testing.",
