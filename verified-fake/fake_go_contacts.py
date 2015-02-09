@@ -96,7 +96,8 @@ class FakeContacts(object):
         self.contacts_data = contacts_data
         self.max_contacts_per_page = max_contacts_per_page
         self.valid_search_keys = [
-            'msisdn', 'wechat_id', 'gtalk_id', 'twitter_handle', 'mxit_id']
+            'bbm_pin', 'facebook_id', 'gtalk_id', 'msisdn', 'mxit_id',
+            'twitter_handle', 'wechat_id']
 
     @staticmethod
     def make_contact_dict(fields):
@@ -153,6 +154,13 @@ class FakeContacts(object):
                 404, u"Contact %r not found." % (contact_key,))
         return contact
 
+    def _normalize_addr(self, contact_field, addr):
+        if contact_field == 'msisdn':
+            addr = '+' + addr.lstrip('+')
+        elif contact_field == 'gtalk':
+            addr = addr.partition('/')[0]
+        return addr
+
     def _get_contacts_from_query(self, query):
         try:
             [field, value] = query.split('=')
@@ -161,8 +169,9 @@ class FakeContacts(object):
                 400, "Query must be of the form 'field=value'")
         if field not in self.valid_search_keys:
             raise FakeContactsError(
-                400, "Query field must be one of: %s" 
+                400, "Query field must be one of: %s"
                 % sorted(self.valid_search_keys))
+        value = self._normalize_addr(field, value)
         contacts = [
             contact for key, contact in self.contacts_data.iteritems() if
             contact[field] == value]
