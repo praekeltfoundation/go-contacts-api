@@ -95,6 +95,9 @@ class FakeContacts(object):
     def __init__(self, contacts_data={}, max_contacts_per_page=10):
         self.contacts_data = contacts_data
         self.max_contacts_per_page = max_contacts_per_page
+        self.valid_search_keys = [
+            'bbm_pin', 'facebook_id', 'gtalk_id', 'msisdn', 'mxit_id',
+            'twitter_handle', 'wechat_id']
 
     @staticmethod
     def make_contact_dict(fields):
@@ -151,6 +154,33 @@ class FakeContacts(object):
                 404, u"Contact %r not found." % (contact_key,))
         return contact
 
+    def _normalize_addr(self, contact_field, addr):
+        if contact_field == 'msisdn':
+            addr = '+' + addr.lstrip('+')
+        elif contact_field == 'gtalk':
+            addr = addr.partition('/')[0]
+        return addr
+
+    def _get_contacts_from_query(self, query):
+        try:
+            [field, value] = query.split('=')
+        except ValueError:
+            raise FakeContactsError(
+                400, "Query must be of the form 'field=value'")
+        if field not in self.valid_search_keys:
+            raise FakeContactsError(
+                400, "Query field must be one of: %s"
+                % sorted(self.valid_search_keys))
+        value = self._normalize_addr(field, value)
+        contacts = [
+            contact for key, contact in self.contacts_data.iteritems() if
+            contact[field] == value]
+        if not contacts:
+            raise FakeContactsError(
+                400,
+                "Object u'Contact with %s %s' not found." % (field, value))
+        return contacts
+
     def get_all_contacts(self, query):
         if query is not None:
             raise FakeContactsError(400, "query parameter not supported")
@@ -171,6 +201,9 @@ class FakeContacts(object):
             return self.get_page_contacts(q, cursor, max_results)
 
     def get_page_contacts(self, query, cursor, max_results):
+        if query is not None:
+            return {
+                u'cursor': None, u'data': self._get_contacts_from_query(query)}
         contacts = self.get_all_contacts(query)
 
         max_results = (max_results and int(max_results)) or float('inf')
@@ -456,7 +489,7 @@ class FakeContactsApi(object):
             self.build_response("", 404)
 
         try:
-            query_string = parse_qs(urllib.unquote(url.query).decode('utf8'))
+            query_string = parse_qs(url.query.decode('utf8'))
             return self.build_response(
                 handler.request(
                     request, contact_key, query_string, self.contacts))

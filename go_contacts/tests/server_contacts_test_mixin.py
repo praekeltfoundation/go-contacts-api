@@ -407,13 +407,61 @@ class ContactsApiTestMixin(object):
             u"Riak error, possible invalid cursor: u'bad-id'")
 
     @inlineCallbacks
-    def test_page_query(self):
+    def test_page_invalid_query_format(self):
         """
-        If a query parameter is supplied, a CollectionUsageError should be
-        thrown, as querys are not yet supported.
+        If an invalid query format is supplied, a CollectionUsageError should
+        be thrown.
         """
         api = self.mk_api()
         code, data = yield self.request(api, 'GET', '/contacts/?query=foo')
         self.assertEqual(code, 400)
         self.assertEqual(data.get(u'status_code'), 400)
-        self.assertEqual(data.get(u'reason'), u'query parameter not supported')
+        self.assertEqual(
+            data.get(u'reason'), u"Query must be of the form 'field=value'")
+
+    @inlineCallbacks
+    def test_page_invalid_query_parameter(self):
+        """
+        If an invalid query parameter is supplied, a CollectionUsageError
+        should be thrown.
+        """
+        api = self.mk_api()
+        code, data = yield self.request(
+            api, 'GET', '/contacts/?query="foo=bar"')
+        self.assertEqual(code, 400)
+        self.assertEqual(data.get(u'status_code'), 400)
+        self.assertEqual(
+            data.get(u'reason'),
+            u"Query field must be one of: ['bbm_pin', 'facebook_id', "
+            "'gtalk_id', 'msisdn', 'mxit_id', 'twitter_handle', 'wechat_id']")
+
+    @inlineCallbacks
+    def test_page_with_query(self):
+        """
+        If a valid query is supplied, the contact should be returned
+        """
+        api = self.mk_api()
+        contact = yield self.create_contact(api, name=u'Bob', msisdn=u'+12345')
+        yield self.create_contact(api, name=u'Sue', msisdn=u'+54321')
+
+        code, data = yield self.request(
+            api, 'GET', '/contacts/?query=msisdn=%2B12345')
+        self.assertEqual(code, 200)
+        self.assertEqual(data.get(u'cursor'), None)
+        self.assertEqual(data.get('data'), [contact])
+
+    @inlineCallbacks
+    def test_page_with_query_no_contact_found(self):
+        """
+        If no contact exists that fulfills the query, a ContactNotFoundError
+        should be thrown.
+        """
+        api = self.mk_api()
+
+        code, data = yield self.request(
+            api, 'GET', '/contacts/?query=msisdn=bar')
+        self.assertEqual(code, 400)
+        self.assertEqual(data.get(u'status_code'), 400)
+        self.assertEqual(
+            data.get('reason'),
+            u"Object u'Contact with msisdn +bar' not found.")
