@@ -104,8 +104,8 @@ class RiakContactsCollection(object):
                 "Query field must be one of: %s" %
                 sorted(Contact.ADDRESS_FIELDS))
 
+        value = normalize_addr(field, value)
         try:
-            value = normalize_addr(field, value)
             contact = yield self.contact_store.contact_for_addr_field(
                 field, value, create=False)
         except ContactNotFoundError:
