@@ -432,8 +432,8 @@ class ContactsApiTestMixin(object):
         self.assertEqual(data.get(u'status_code'), 400)
         self.assertEqual(
             data.get(u'reason'),
-            u"Query field must be one of: ['gtalk_id', 'msisdn', 'mxit_id', "
-            "'twitter_handle', 'wechat_id']")
+            u"Query field must be one of: ['bbm_pin', 'facebook_id', "
+            "'gtalk_id', 'msisdn', 'mxit_id', 'twitter_handle', 'wechat_id']")
 
     @inlineCallbacks
     def test_page_with_query(self):
@@ -464,4 +464,4 @@ class ContactsApiTestMixin(object):
         self.assertEqual(data.get(u'status_code'), 400)
         self.assertEqual(
             data.get('reason'),
-            u"Object u'Contact with msisdn bar' not found.")
+            u"Object u'Contact with msisdn +bar' not found.")
