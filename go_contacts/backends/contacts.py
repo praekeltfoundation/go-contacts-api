@@ -1,7 +1,6 @@
 """
 Riak contacts backend and collection.
 """
-from collections import defaultdict
 
 from twisted.internet.defer import inlineCallbacks, returnValue
 from zope.interface import implementer
@@ -10,7 +9,7 @@ from vumi.persist.fields import ValidationError
 
 from go.vumitools.contact import (
     ContactStore, ContactNotFoundError, Contact)
-from go.vumitools.contact.models import DELIVERY_CLASSES
+from go.vumitools.contact.models import normalize_addr
 
 from go_api.collections import ICollection
 from go_api.collections.errors import (
@@ -54,7 +53,6 @@ class RiakContactsCollection(object):
     def __init__(self, contact_store, max_contacts_per_page):
         self.contact_store = contact_store
         self.max_contacts_per_page = max_contacts_per_page
-        self.delivery_classes = self._reverse_delivery_class()
 
     @staticmethod
     def _pick_fields(data, keys):
@@ -94,12 +92,6 @@ class RiakContactsCollection(object):
         """
         raise NotImplementedError()
 
-    def _reverse_delivery_class(self):
-        res = defaultdict(list)
-        for cls, value in DELIVERY_CLASSES.iteritems():
-            res[value['field']].append(cls)
-        return res
-
     @inlineCallbacks
     def _get_contacts_by_query(self, query):
         try:
@@ -107,14 +99,15 @@ class RiakContactsCollection(object):
         except ValueError:
             raise CollectionUsageError(
                 "Query must be of the form 'field=value'")
-        if field not in self.delivery_classes:
+        if field not in Contact.ADDRESS_FIELDS:
             raise CollectionUsageError(
                 "Query field must be one of: %s" %
-                    sorted(self.delivery_classes.keys()))
+                sorted(Contact.ADDRESS_FIELDS))
 
         try:
-            contact = yield self.contact_store.contact_for_addr(
-                self.delivery_classes[field][0], value, create=False)
+            value = normalize_addr(field, value)
+            contact = yield self.contact_store.contact_for_addr_field(
+                field, value, create=False)
         except ContactNotFoundError:
             raise CollectionObjectNotFound(
                 'Contact with %s %s' % (field, value))
