@@ -9,6 +9,7 @@ from vumi.persist.fields import ValidationError
 
 from go.vumitools.contact import (
     ContactStore, ContactNotFoundError, Contact)
+from go.vumitools.contact.models import normalize_addr
 
 from go_api.collections import ICollection
 from go_api.collections.errors import (
@@ -91,6 +92,28 @@ class RiakContactsCollection(object):
         """
         raise NotImplementedError()
 
+    @inlineCallbacks
+    def _get_contacts_by_query(self, query):
+        try:
+            [field, value] = query.split('=')
+        except ValueError:
+            raise CollectionUsageError(
+                "Query must be of the form 'field=value'")
+        if field not in Contact.ADDRESS_FIELDS:
+            raise CollectionUsageError(
+                "Query field must be one of: %s" %
+                sorted(Contact.ADDRESS_FIELDS))
+
+        value = normalize_addr(field, value)
+        try:
+            contact = yield self.contact_store.contact_for_addr_field(
+                field, value, create=False)
+        except ContactNotFoundError:
+            raise CollectionObjectNotFound(
+                'Contact with %s %s' % (field, value))
+
+        returnValue([contact_to_dict(contact)])
+
     def stream(self, query):
         """
         Return a :class:`PausingDeferredQueue` of the objects in the
@@ -137,7 +160,7 @@ class RiakContactsCollection(object):
             to ``None`` if no limit was specified.
         :param unicode query:
             Search term requested through the API. Defaults to ``None`` if no
-            search term was requested.
+            search term was requested. Query must be of the form `field=value`.
 
         :return:
             (cursor, data). ``cursor`` is an opaque string that refers to the
@@ -146,7 +169,8 @@ class RiakContactsCollection(object):
         :rtype: tuple
         """
         if query is not None:
-            raise CollectionUsageError("query parameter not supported")
+            contacts = yield self._get_contacts_by_query(query)
+            returnValue((None, contacts))
 
         max_results = max_results or float('inf')
         max_results = min(max_results, self.max_contacts_per_page)
