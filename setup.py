@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name="go-contacts",
-    version="0.1.9",
+    version="0.1.10a",
     url='http://github.com/praekelt/go-contacts-api',
     license='BSD',
     description="A contacts and groups API for Vumi Go",
